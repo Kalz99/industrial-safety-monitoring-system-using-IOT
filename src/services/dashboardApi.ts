@@ -211,6 +211,30 @@ export class DashboardApiService {
       console.error('Failed to log alert to RTDB:', error);
     }
   }
+
+  /**
+   * Subscribes to real-time chronological alert logs from `/alerts` node in RTDB.
+   * Returns an unsubscribe function.
+   */
+  static subscribeToAlertLogs(onUpdate: (alerts: any[]) => void): () => void {
+    const alertsRef = ref(database, 'alerts');
+    return onValue(alertsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        onUpdate([]);
+        return;
+      }
+      const rawAlerts = Object.keys(data).map((key) => ({
+        id: key,
+        ...data[key]
+      }));
+      // Sort in reverse chronological order (newest first)
+      rawAlerts.sort((a, b) => b.timestamp - a.timestamp);
+      onUpdate(rawAlerts);
+    }, (error) => {
+      console.error('Alerts subscription error:', error);
+    });
+  }
 }
 export default DashboardApiService;
 

@@ -104,7 +104,7 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
         </Topbar>
 
         {/* Dynamic Page Container */}
-        <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1">
+        <div className="flex-1 flex flex-col gap-6 pr-1">
           {/* Quick Metrics Averages */}
           {(() => {
             const areasData = useStore.getState().areasData;

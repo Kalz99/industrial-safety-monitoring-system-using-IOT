@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAreas } from './useAreas';
+import { DashboardApiService } from '../services/dashboardApi';
 
 export interface AlertLogRecord {
   id: string;
@@ -11,92 +12,66 @@ export interface AlertLogRecord {
   value: string;
 }
 
-const generateMockAlerts = (areaNamesMap: Record<string, string>): AlertLogRecord[] => {
-  const alerts: AlertLogRecord[] = [];
-  const now = new Date();
-  
-  const alertSpecs = [
-    {
-      offsetHours: 0.5,
-      areaId: 'prod-line-1',
-      type: 'smoke' as const,
-      message: 'Smoke density threshold limit reached.',
-      value: '650 ppm'
-    },
-    {
-      offsetHours: 1.2,
-      areaId: 'boiler-room',
-      type: 'temperature' as const,
-      message: 'Boiler feed motor temperature threshold met.',
-      value: '82.5 °C'
-    },
-    {
-      offsetHours: 3.5,
-      areaId: 'boiler-room',
-      type: 'vibration' as const,
-      message: 'Turbine axle vibration sensor threshold triggered.',
-      value: '5.8 g'
-    },
-    {
-      offsetHours: 6.0,
-      areaId: 'prod-line-1',
-      type: 'flame' as const,
-      message: 'Flame detector sensor reading recorded.',
-      value: 'Detected'
-    },
-    {
-      offsetHours: 8.5,
-      areaId: 'assembly-hall',
-      type: 'temperature' as const,
-      message: 'HVAC controller reporting elevated temperature.',
-      value: '29.2 °C'
-    },
-    {
-      offsetHours: 12.0,
-      areaId: 'storage-a',
-      type: 'current' as const,
-      message: 'Refrigeration unit compression pump current spike.',
-      value: '18.4 A'
-    },
-    {
-      offsetHours: 16.5,
-      areaId: 'boiler-room',
-      type: 'smoke' as const,
-      message: 'Particulate density warning sensor logged.',
-      value: '190 ppm'
-    },
-    {
-      offsetHours: 21.0,
-      areaId: 'prod-line-1',
-      type: 'current' as const,
-      message: 'Welding system actuator current spike recorded.',
-      value: '38.5 A'
-    }
-  ];
-
-  alertSpecs.forEach((spec, index) => {
-    const time = new Date(now.getTime() - spec.offsetHours * 60 * 60 * 1000);
-    const timestamp = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + time.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    
-    alerts.push({
-      id: `alert-${index + 1}`,
-      timestamp,
-      areaId: spec.areaId,
-      areaName: areaNamesMap[spec.areaId] || 'Unknown',
-      type: spec.type,
-      message: spec.message,
-      value: spec.value
-    });
-  });
-
-  return alerts;
-};
-
 export const useAlertLogs = () => {
   const { areasList, areaNamesMap } = useAreas();
-  const [alerts] = useState<AlertLogRecord[]>(() => generateMockAlerts(areaNamesMap));
+  const [rawAlerts, setRawAlerts] = useState<any[]>([]);
   const [filterArea, setFilterArea] = useState<string>('all');
 
+  // Subscribe dynamically to the Firebase RTDB /alerts parent node
+  useEffect(() => {
+    const unsubscribe = DashboardApiService.subscribeToAlertLogs((updatedAlerts) => {
+      setRawAlerts(updatedAlerts);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Map the raw database records into clean React UI display elements
+  const alerts: AlertLogRecord[] = useMemo(() => {
+    return rawAlerts.map((alert) => {
+      const areaName = areaNamesMap[alert.areaId] || 'Unnamed Sector';
+      const sensorName = alert.sensorName || 'temperature';
+      
+      // Determine safety message & units dynamically
+      let message = 'Critical sensor threshold Breach.';
+      let valueWithUnit = String(alert.value);
+
+      if (sensorName === 'flame') {
+        message = '🔥 Fire detector sensor alarm triggered!';
+        valueWithUnit = 'Detected';
+      } else if (sensorName === 'smoke') {
+        message = `Smoke density threshold limit crossed.`;
+        valueWithUnit = `${alert.value} ppm`;
+      } else if (sensorName === 'vibration') {
+        message = `Machinery vibration threshold limit crossed.`;
+        valueWithUnit = `${alert.value} g`;
+      } else if (sensorName === 'current') {
+        message = `Electrical amperage draw threshold crossed.`;
+        valueWithUnit = `${alert.value} A`;
+      } else if (sensorName === 'temperature') {
+        const isEnv = alert.envId !== null;
+        message = isEnv 
+          ? `Ambient temperature threshold limit crossed.`
+          : `Motor temperature threshold limit crossed.`;
+        valueWithUnit = `${alert.value} °C`;
+      }
+
+      // Format timestamp beautifully
+      const date = new Date(alert.timestamp || Date.now());
+      const formattedTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+      return {
+        id: alert.alertId || alert.id,
+        timestamp: formattedTime,
+        areaId: alert.areaId,
+        areaName,
+        type: sensorName as any,
+        message,
+        value: valueWithUnit
+      };
+    });
+  }, [rawAlerts, areaNamesMap]);
+
+  // Filter alerts by sector dynamically
   const filteredAlerts = useMemo(() => {
     return alerts.filter(a => {
       return filterArea === 'all' || a.areaId === filterArea;
@@ -118,3 +93,5 @@ export const useAlertLogs = () => {
     areasList
   };
 };
+
+export default useAlertLogs;

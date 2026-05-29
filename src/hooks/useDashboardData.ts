@@ -75,16 +75,36 @@ export const useDashboardData = () => {
   const setActiveModalAlert = useStore((state) => state.setActiveModalAlert);
   const acknowledgedAlerts = useStore((state) => state.acknowledgedAlerts);
   const setAcknowledgedAlerts = useStore((state) => state.setAcknowledgedAlerts);
+  const isFirstLoadRef = useRef(true);
 
   // Seed database and subscribe to real-time RTDB updates directly
   useEffect(() => {
     DashboardApiService.seedInitialSectors(initialAreasData).then(() => {
       const unsubscribe = DashboardApiService.subscribeToSectors((updatedSectors) => {
+        // Pre-acknowledge existing critical alerts silently on first boot
+        if (isFirstLoadRef.current && updatedSectors.length > 0) {
+          const preAcknowledged: string[] = [];
+          for (const area of updatedSectors) {
+            // Check machines
+            if (area.machineHealth.vibration.status === 'critical') preAcknowledged.push(`${area.id}-vibration`);
+            if (area.machineHealth.current.status === 'critical') preAcknowledged.push(`${area.id}-current`);
+            if (area.machineHealth.temperature.status === 'critical') preAcknowledged.push(`${area.id}-temperature`);
+            // Check environment
+            if (area.environment.smoke.status === 'critical') preAcknowledged.push(`${area.id}-smoke`);
+            if (area.environment.flame.status === 'critical') preAcknowledged.push(`${area.id}-flame`);
+            if (area.environment.temperature.status === 'critical') preAcknowledged.push(`${area.id}-temperature`);
+          }
+          if (preAcknowledged.length > 0) {
+            setAcknowledgedAlerts(preAcknowledged);
+          }
+          isFirstLoadRef.current = false;
+        }
+
         setAreasData(updatedSectors);
       });
       return unsubscribe;
     });
-  }, [setAreasData]);
+  }, [setAreasData, setAcknowledgedAlerts]);
 
   // Real-time edge trigger alert scanner
   useEffect(() => {

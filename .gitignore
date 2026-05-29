@@ -15,10 +15,10 @@ dist-ssr
 .env.*
 seed-more-areas.js
 seed-more-areas.cjs
-
-
-
-
+broadcast-push-alert.cjs
+.firebaserc
+firebase.json
+firebase-messaging-sw.js
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

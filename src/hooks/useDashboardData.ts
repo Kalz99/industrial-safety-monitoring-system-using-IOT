@@ -66,9 +66,15 @@ const initialAreasData: AreaTelemetry[] = [
   }
 ];
 
+import { type ActiveAlertInfo } from './useStore';
+
 export const useDashboardData = () => {
   const areasData = useStore((state) => state.areasData);
   const setAreasData = useStore((state) => state.setAreasData);
+  const activeModalAlert = useStore((state) => state.activeModalAlert);
+  const setActiveModalAlert = useStore((state) => state.setActiveModalAlert);
+  const acknowledgedAlerts = useStore((state) => state.acknowledgedAlerts);
+  const setAcknowledgedAlerts = useStore((state) => state.setAcknowledgedAlerts);
 
   // Seed database and subscribe to real-time RTDB updates directly
   useEffect(() => {
@@ -79,6 +85,88 @@ export const useDashboardData = () => {
       return unsubscribe;
     });
   }, [setAreasData]);
+
+  // Real-time edge trigger alert scanner
+  useEffect(() => {
+    if (areasData.length === 0) return;
+
+    let newTriggeredAlert: ActiveAlertInfo | null = null;
+    const currentCriticalKeys: string[] = [];
+
+    for (const area of areasData) {
+      // 1. Scan Machine Health
+      const machines = [
+        { type: 'vibration', label: 'Vibration', sensor: area.machineHealth.vibration },
+        { type: 'current', label: 'Amperage Draw', sensor: area.machineHealth.current },
+        { type: 'temperature', label: 'Motor Temperature', sensor: area.machineHealth.temperature }
+      ];
+
+      for (const m of machines) {
+        const key = `${area.id}-${m.type}`;
+        if (m.sensor.status === 'critical') {
+          currentCriticalKeys.push(key);
+          if (!acknowledgedAlerts.includes(key) && !newTriggeredAlert && !activeModalAlert) {
+            newTriggeredAlert = {
+              areaId: area.id,
+              areaName: area.name,
+              sourceType: 'machine',
+              sensorType: m.type,
+              sensorLabel: m.label,
+              value: m.sensor.value,
+              unit: m.sensor.unit || '',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+          }
+        }
+      }
+
+      // 2. Scan Environmental Safety
+      const environments = [
+        { type: 'smoke', label: 'Smoke Density', sensor: area.environment.smoke },
+        { type: 'flame', label: 'Fire Detector', sensor: area.environment.flame },
+        { type: 'temperature', label: 'Ambient Temperature', sensor: area.environment.temperature }
+      ];
+
+      for (const env of environments) {
+        const key = `${area.id}-${env.type}`;
+        if (env.sensor.status === 'critical') {
+          currentCriticalKeys.push(key);
+          if (!acknowledgedAlerts.includes(key) && !newTriggeredAlert && !activeModalAlert) {
+            newTriggeredAlert = {
+              areaId: area.id,
+              areaName: area.name,
+              sourceType: 'environment',
+              sensorType: env.type,
+              sensorLabel: env.label,
+              value: env.sensor.value,
+              unit: 'unit' in env.sensor ? env.sensor.unit : '',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+          }
+        }
+      }
+    }
+
+    // Edge trigger action: show modal, track key, and record alert in Firebase
+    if (newTriggeredAlert) {
+      setActiveModalAlert(newTriggeredAlert);
+      setAcknowledgedAlerts([...acknowledgedAlerts, `${newTriggeredAlert.areaId}-${newTriggeredAlert.sensorType}`]);
+      
+      // Asynchronously log this critical alert record to Firebase /alerts node
+      DashboardApiService.logAlertRecord({
+        areaId: newTriggeredAlert.areaId,
+        sourceType: newTriggeredAlert.sourceType,
+        sensorName: newTriggeredAlert.sensorType,
+        value: newTriggeredAlert.value
+      }).catch(err => console.error("Failed to register alert log in Firebase:", err));
+    }
+
+    // Re-arm recovery nodes
+    const stillCritical = acknowledgedAlerts.filter(k => currentCriticalKeys.includes(k));
+    if (stillCritical.length !== acknowledgedAlerts.length) {
+      setAcknowledgedAlerts(stillCritical);
+    }
+  }, [areasData, acknowledgedAlerts, activeModalAlert, setActiveModalAlert, setAcknowledgedAlerts]);
 
   // Compute live aggregates dynamically
   const kpiStats = useMemo(() => {
@@ -101,6 +189,7 @@ export const useDashboardData = () => {
     kpiStats
   };
 };
+
 
 
 

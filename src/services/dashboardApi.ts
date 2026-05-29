@@ -1,4 +1,4 @@
-import { ref, onValue, set, update } from 'firebase/database';
+import { ref, onValue, set, update, push } from 'firebase/database';
 import { database } from '../config/firebase';
 import { SENSOR_THRESHOLDS } from '../config/thresholds';
 import type { AreaTelemetry } from '../pages/dashboard/components/AreaCard';
@@ -162,6 +162,54 @@ export class DashboardApiService {
     dbUpdates[`areas/${areaId}/environment/${envId}/temp`] = telemetry.environment.temperature.value;
 
     await update(ref(database), dbUpdates);
+  }
+
+  /**
+   * Logs a critical alert to the Realtime Database under /alerts using a push key.
+   */
+  static async logAlertRecord(alertInfo: {
+    areaId: string;
+    sourceType: 'machine' | 'environment';
+    sensorName: string;
+    value: string | number;
+  }): Promise<void> {
+    try {
+      const alertsRef = ref(database, 'alerts');
+      const newAlertRef = push(alertsRef);
+      const alertId = newAlertRef.key;
+
+      if (!alertId) return;
+
+      // Look up corresponding machineId / envId from areas list
+      const areaSnapshot = await new Promise<any>((resolve, reject) => {
+        onValue(ref(database, `areas/${alertInfo.areaId}`), (snap) => resolve(snap), (err) => reject(err), { onlyOnce: true });
+      });
+
+      const areaData = areaSnapshot.val();
+      let machineId = null;
+      let envId = null;
+
+      if (areaData) {
+        if (alertInfo.sourceType === 'machine' && areaData.machine_health) {
+          machineId = Object.keys(areaData.machine_health)[0] || 'machine-1';
+        } else if (alertInfo.sourceType === 'environment' && areaData.environment) {
+          envId = Object.keys(areaData.environment)[0] || 'env-1';
+        }
+      }
+
+      await set(newAlertRef, {
+        alertId: alertId,
+        areaId: alertInfo.areaId,
+        machineId: machineId,
+        envId: envId,
+        sensorName: alertInfo.sensorName,
+        value: String(alertInfo.value),
+        timestamp: Date.now()
+      });
+      console.log(`Alert ${alertId} successfully logged to RTDB under /alerts.`);
+    } catch (error) {
+      console.error('Failed to log alert to RTDB:', error);
+    }
   }
 }
 export default DashboardApiService;

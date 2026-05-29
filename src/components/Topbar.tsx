@@ -24,7 +24,7 @@ export const Topbar: React.FC<TopbarProps> = ({ activeTab, theme, setTheme, chil
   const getPageTitle = (tabId: string) => {
     switch (tabId) {
       case 'overview':
-        return 'Dashboard';
+        return 'Active Sectors';
       case 'areas':
         return 'Industrial Area Conditions';
       case 'analytics':

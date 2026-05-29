@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { AreaTelemetry } from '../pages/dashboard/components/AreaCard';
+import { DashboardApiService } from '../services/dashboardApi';
+import { useStore } from './useStore';
 
 const initialAreasData: AreaTelemetry[] = [
   {
@@ -65,72 +67,18 @@ const initialAreasData: AreaTelemetry[] = [
 ];
 
 export const useDashboardData = () => {
-  const [areasData, setAreasData] = useState<AreaTelemetry[]>(initialAreasData);
+  const areasData = useStore((state) => state.areasData);
+  const setAreasData = useStore((state) => state.setAreasData);
 
-  // Live simulation: introduce subtle random noise to sensor variables every 4 seconds
+  // Seed database and subscribe to real-time RTDB updates directly
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAreasData((prevData) =>
-        prevData.map((area) => {
-          // Vibration noise (up to 0.3g fluctuation)
-          const newVib = parseFloat((area.machineHealth.vibration.value + (Math.random() * 0.4 - 0.2)).toFixed(2));
-          const vibrationVal = Math.max(0.1, newVib);
-          const vibrationStatus = vibrationVal > 5.0 ? 'critical' : 'normal';
-
-          // Current draw noise (up to 1.5A fluctuation)
-          const newCurrent = parseFloat((area.machineHealth.current.value + (Math.random() * 2.0 - 1.0)).toFixed(1));
-          const currentVal = Math.max(0.5, newCurrent);
-          const currentStatus = currentVal > 40.0 ? 'critical' : 'normal';
-
-          // Motor Temperature noise (up to 0.8C fluctuation)
-          const newMotTemp = parseFloat((area.machineHealth.temperature.value + (Math.random() * 1.6 - 0.8)).toFixed(1));
-          const temperatureVal = Math.max(20, newMotTemp);
-          const temperatureStatus = temperatureVal > 75.0 ? 'critical' : 'normal';
-
-          // Smoke Density noise (up to 12ppm fluctuation)
-          const newSmoke = Math.round(area.environment.smoke.value + (Math.random() * 24 - 12));
-          const smokeVal = Math.max(10, newSmoke);
-          const smokeStatus = smokeVal > 400 ? 'critical' : 'normal';
-
-          // Ambient Temperature noise
-          const newAmbTemp = parseFloat((area.environment.temperature.value + (Math.random() * 0.6 - 0.3)).toFixed(1));
-          const ambTempVal = Math.max(10, newAmbTemp);
-          const ambTempStatus = ambTempVal > 40.0 ? 'critical' : 'normal';
-
-          // Flame sensor status
-          const flameStatus = area.environment.flame.status;
-
-          // Determine overall area status
-          const hasCritical = 
-            vibrationStatus === 'critical' || 
-            currentStatus === 'critical' || 
-            temperatureStatus === 'critical' || 
-            smokeStatus === 'critical' || 
-            flameStatus === 'critical' || 
-            ambTempStatus === 'critical';
-            
-          const status = hasCritical ? 'critical' : 'normal';
-
-          return {
-            ...area,
-            status,
-            machineHealth: {
-              vibration: { ...area.machineHealth.vibration, value: vibrationVal, status: vibrationStatus },
-              current: { ...area.machineHealth.current, value: currentVal, status: currentStatus },
-              temperature: { ...area.machineHealth.temperature, value: temperatureVal, status: temperatureStatus }
-            },
-            environment: {
-              smoke: { ...area.environment.smoke, value: smokeVal, status: smokeStatus },
-              flame: area.environment.flame,
-              temperature: { ...area.environment.temperature, value: ambTempVal, status: ambTempStatus }
-            }
-          };
-        })
-      );
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
+    DashboardApiService.seedInitialSectors(initialAreasData).then(() => {
+      const unsubscribe = DashboardApiService.subscribeToSectors((updatedSectors) => {
+        setAreasData(updatedSectors);
+      });
+      return unsubscribe;
+    });
+  }, [setAreasData]);
 
   // Compute live aggregates dynamically
   const kpiStats = useMemo(() => {
@@ -153,3 +101,6 @@ export const useDashboardData = () => {
     kpiStats
   };
 };
+
+
+

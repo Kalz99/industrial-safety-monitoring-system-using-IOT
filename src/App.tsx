@@ -1,11 +1,18 @@
-import { useState } from 'react';
 import { Dashboard } from './pages/dashboard/Dashboard';
 import { AreaHistory } from './pages/history/AreaHistory';
 import { AlertLogs } from './pages/alerts/AlertLogs';
+import { useStore } from './hooks/useStore';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<string>('overview');
-  const [selectedAreaId, setSelectedAreaId] = useState<string>('prod-line-1');
+  const activeTab = useStore((state) => state.activeTab);
+  const setActiveTab = useStore((state) => state.setActiveTab);
+  const selectedAreaId = useStore((state) => state.selectedAreaId);
+  const setSelectedAreaId = useStore((state) => state.setSelectedAreaId);
+
+  // Set standard fallback selected area on launch if empty
+  if (!selectedAreaId) {
+    setSelectedAreaId('prod-line-1');
+  }
 
   const handleExploreArea = (areaId: string) => {
     setSelectedAreaId(areaId);
@@ -20,7 +27,7 @@ function App() {
     <>
       {activeTab === 'analytics' ? (
         <AreaHistory 
-          areaId={selectedAreaId} 
+          areaId={selectedAreaId || 'prod-line-1'} 
           setSelectedAreaId={setSelectedAreaId}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -29,7 +36,7 @@ function App() {
         />
       ) : activeTab === 'areas' ? (
         <AreaHistory 
-          areaId={selectedAreaId} 
+          areaId={selectedAreaId || 'prod-line-1'} 
           setSelectedAreaId={setSelectedAreaId}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -53,3 +60,4 @@ function App() {
 }
 
 export default App;
+

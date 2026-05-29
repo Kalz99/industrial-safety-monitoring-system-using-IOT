@@ -66,10 +66,23 @@ export const SensorLabel: React.FC<SensorLabelProps> = ({
         </div>
         <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{label}</span>
       </div>
-      <div className="flex items-baseline gap-0.5">
-        <span className={`text-sm font-semibold tracking-tight ${colors.text}`}>{value}</span>
-        {unit && <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider pl-0.5">{unit}</span>}
+      <div className="flex items-center gap-2.5">
+        <div className="flex items-baseline gap-0.5">
+          <span className={`text-sm font-semibold tracking-tight ${colors.text}`}>{value}</span>
+          {unit && <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider pl-0.5">{unit}</span>}
+        </div>
+        
+        {/* Live heartbeat telemetry dot */}
+        <div className="relative flex h-1.5 w-1.5" title="Live stream reading">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+            status === 'critical' ? 'bg-rose-450' : 'bg-emerald-400'
+          }`}></span>
+          <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+            status === 'critical' ? 'bg-rose-550' : 'bg-emerald-550'
+          }`}></span>
+        </div>
       </div>
+
     </div>
   );
 };

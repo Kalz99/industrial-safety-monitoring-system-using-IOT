@@ -5,6 +5,7 @@ import { MetricCard } from '../../components/MetricCard';
 import { Badge } from '../../components/Badge';
 import { useAlertLogs } from '../../hooks/useAlertLogs';
 import { useAreas } from '../../hooks/useAreas';
+import { useStore } from '../../hooks/useStore';
 import { 
   BellRing, 
   Flame, 
@@ -13,8 +14,10 @@ import {
   Zap, 
   Thermometer, 
   SlidersHorizontal,
-  Building
+  Building,
+  Settings
 } from 'lucide-react';
+
 
 interface AlertLogsProps {
   activeTab: string;
@@ -102,24 +105,47 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
 
         {/* Dynamic Page Container */}
         <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1">
-          
           {/* Quick Metrics Averages */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-            <MetricCard 
-              label="Total Alerts Logged"
-              value={`${stats.totalCount} Incidents`}
-              subtext="Chronological sensor violations logged"
-              icon={BellRing}
-              status="normal"
-            />
-            <MetricCard 
-              label="Monitored Sectors"
-              value="4 Active Areas"
-              subtext="Exhaust and machine gateways connected"
-              icon={Building}
-              status="normal"
-            />
-          </div>
+          {(() => {
+            const areasData = useStore.getState().areasData;
+            const activeAreas = areasData.length || 4;
+            const totalMachines = areasData.length || 4;
+            const activeAlerts = areasData.filter(a => a.status === 'critical').length;
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+                <MetricCard 
+                  label="Total Incidents"
+                  value={`${stats.totalCount} Logged`}
+                  subtext="Chronological violations logged"
+                  icon={BellRing}
+                  status="normal"
+                />
+                <MetricCard 
+                  label="Monitored Sectors"
+                  value={`${activeAreas} Areas`}
+                  subtext="Active regional gateways"
+                  icon={Building}
+                  status="normal"
+                />
+                <MetricCard 
+                  label="Connected Machines"
+                  value={`${totalMachines} Units`}
+                  subtext="Health monitoring active"
+                  icon={Settings}
+                  status="normal"
+                />
+                <MetricCard 
+                  label="Active Warnings"
+                  value={`${activeAlerts} Live Alerts`}
+                  subtext="Current critical alarms"
+                  icon={Flame}
+                  status={activeAlerts > 0 ? 'critical' as any : 'normal'}
+                />
+              </div>
+            );
+          })()}
+
 
           {/* Alarm Log Feed */}
           <div className="bg-white dark:bg-[#0f172a]/60 border border-slate-100 dark:border-slate-800/40 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.01)] w-full">

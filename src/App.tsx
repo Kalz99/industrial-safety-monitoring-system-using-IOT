@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Dashboard } from './pages/dashboard/Dashboard';
 import { AreaHistory } from './pages/history/AreaHistory';
 import { AlertLogs } from './pages/alerts/AlertLogs';
@@ -8,11 +9,18 @@ function App() {
   const setActiveTab = useStore((state) => state.setActiveTab);
   const selectedAreaId = useStore((state) => state.selectedAreaId);
   const setSelectedAreaId = useStore((state) => state.setSelectedAreaId);
+  const areasData = useStore((state) => state.areasData);
 
-  // Set standard fallback selected area on launch if empty
-  if (!selectedAreaId) {
-    setSelectedAreaId('prod-line-1');
-  }
+  // Set standard fallback selected area dynamically from database on launch
+  useEffect(() => {
+    if (areasData.length > 0) {
+      const exists = areasData.some(a => a.id === selectedAreaId);
+      if (!selectedAreaId || !exists) {
+        setSelectedAreaId(areasData[0].id);
+      }
+    }
+  }, [areasData, selectedAreaId, setSelectedAreaId]);
+
 
   const handleExploreArea = (areaId: string) => {
     setSelectedAreaId(areaId);

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useStore } from './useStore';
 
 export interface AreaInfo {
   id: string;
@@ -6,12 +7,15 @@ export interface AreaInfo {
 }
 
 export const useAreas = () => {
-  const areasList = useMemo<AreaInfo[]>(() => [
-    { id: 'prod-line-1', name: 'Production Line 1' },
-    { id: 'boiler-room', name: 'Boiler Room Sector' },
-    { id: 'storage-a', name: 'Storage Area A' },
-    { id: 'assembly-hall', name: 'Main Assembly Hall' }
-  ], []);
+  const areasData = useStore((state) => state.areasData);
+
+  const areasList = useMemo<AreaInfo[]>(() => {
+    return areasData.map(area => ({
+      id: area.id,
+      name: area.name
+    }));
+  }, [areasData]);
+
 
   const areaNamesMap = useMemo(() => {
     return areasList.reduce((acc, area) => {
@@ -25,3 +29,4 @@ export const useAreas = () => {
     areaNamesMap
   };
 };
+

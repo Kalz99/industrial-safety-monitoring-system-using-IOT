@@ -165,20 +165,24 @@ export class DashboardApiService {
   }
 
   /**
+   * Generates a unique Firebase push key for alert reference synchronously.
+   */
+  static generateAlertId(): string {
+    return push(ref(database, 'alerts')).key || '';
+  }
+
+  /**
    * Logs a critical alert to the Realtime Database under /alerts using a push key.
    */
   static async logAlertRecord(alertInfo: {
+    alertId: string;
     areaId: string;
     sourceType: 'machine' | 'environment';
     sensorName: string;
     value: string | number;
   }): Promise<void> {
     try {
-      const alertsRef = ref(database, 'alerts');
-      const newAlertRef = push(alertsRef);
-      const alertId = newAlertRef.key;
-
-      if (!alertId) return;
+      const alertRef = ref(database, `alerts/${alertInfo.alertId}`);
 
       // Look up corresponding machineId / envId from areas list
       const areaSnapshot = await new Promise<any>((resolve, reject) => {
@@ -197,20 +201,59 @@ export class DashboardApiService {
         }
       }
 
-      await set(newAlertRef, {
-        alertId: alertId,
+      await set(alertRef, {
+        alertId: alertInfo.alertId,
         areaId: alertInfo.areaId,
         machineId: machineId,
         envId: envId,
         sensorName: alertInfo.sensorName,
         value: String(alertInfo.value),
+        status: 'Alert Triggered', // Initial safety trigger state
         timestamp: Date.now()
       });
-      console.log(`Alert ${alertId} successfully logged to RTDB under /alerts.`);
+      console.log(`Alert ${alertInfo.alertId} successfully logged to RTDB under /alerts.`);
     } catch (error) {
       console.error('Failed to log alert to RTDB:', error);
     }
   }
+
+  /**
+   * Updates the status of an existing alert (e.g. to 'Acknowledged') in the Realtime Database.
+   */
+  static async updateAlertStatus(alertId: string, status: string): Promise<void> {
+    try {
+      const alertStatusRef = ref(database, `alerts/${alertId}/status`);
+      await set(alertStatusRef, status);
+      console.log(`Alert ${alertId} status successfully updated to: ${status}`);
+    } catch (error) {
+      console.error(`Failed to update status for alert ${alertId}:`, error);
+    }
+  }
+
+  /**
+   * Fetches any active unacknowledged alerts (status 'Alert Triggered') from RTDB once.
+   */
+  static async fetchUnacknowledgedAlerts(): Promise<any[]> {
+    try {
+      const alertsRef = ref(database, 'alerts');
+      const snapshot = await new Promise<any>((resolve, reject) => {
+        onValue(alertsRef, (snap) => resolve(snap), (err) => reject(err), { onlyOnce: true });
+      });
+
+      const data = snapshot.val();
+      if (!data) return [];
+
+      return Object.keys(data)
+        .map((key) => ({ id: key, ...data[key] }))
+        .filter((a) => a.status === 'Alert Triggered')
+        .sort((a, b) => b.timestamp - a.timestamp); // Newest first
+    } catch (error) {
+      console.error('Failed to fetch unacknowledged alerts from RTDB:', error);
+      return [];
+    }
+  }
+
+
 
   /**
    * Subscribes to real-time chronological alert logs from `/alerts` node in RTDB.

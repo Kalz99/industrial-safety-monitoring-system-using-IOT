@@ -10,6 +10,7 @@ export interface AlertLogRecord {
   type: 'flame' | 'smoke' | 'vibration' | 'temperature' | 'current';
   message: string;
   value: string;
+  status: string;
 }
 
 export const useAlertLogs = () => {
@@ -66,7 +67,8 @@ export const useAlertLogs = () => {
         areaName,
         type: sensorName as any,
         message,
-        value: valueWithUnit
+        value: valueWithUnit,
+        status: alert.status || 'Alert Triggered'
       };
     });
   }, [rawAlerts, areaNamesMap]);

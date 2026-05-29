@@ -10,6 +10,7 @@ export interface ActiveAlertInfo {
   value: number | string;
   unit: string;
   timestamp: string;
+  alertId?: string;
 }
 
 interface AppState {

@@ -75,42 +75,23 @@ export const useDashboardData = () => {
   const setActiveModalAlert = useStore((state) => state.setActiveModalAlert);
   const acknowledgedAlerts = useStore((state) => state.acknowledgedAlerts);
   const setAcknowledgedAlerts = useStore((state) => state.setAcknowledgedAlerts);
-  const isFirstLoadRef = useRef(true);
 
   // Seed database and subscribe to real-time RTDB updates directly
   useEffect(() => {
     DashboardApiService.seedInitialSectors(initialAreasData).then(() => {
       const unsubscribe = DashboardApiService.subscribeToSectors((updatedSectors) => {
-        // Pre-acknowledge existing critical alerts silently on first boot
-        if (isFirstLoadRef.current && updatedSectors.length > 0) {
-          const preAcknowledged: string[] = [];
-          for (const area of updatedSectors) {
-            // Check machines
-            if (area.machineHealth.vibration.status === 'critical') preAcknowledged.push(`${area.id}-vibration`);
-            if (area.machineHealth.current.status === 'critical') preAcknowledged.push(`${area.id}-current`);
-            if (area.machineHealth.temperature.status === 'critical') preAcknowledged.push(`${area.id}-temperature`);
-            // Check environment
-            if (area.environment.smoke.status === 'critical') preAcknowledged.push(`${area.id}-smoke`);
-            if (area.environment.flame.status === 'critical') preAcknowledged.push(`${area.id}-flame`);
-            if (area.environment.temperature.status === 'critical') preAcknowledged.push(`${area.id}-temperature`);
-          }
-          if (preAcknowledged.length > 0) {
-            setAcknowledgedAlerts(preAcknowledged);
-          }
-          isFirstLoadRef.current = false;
-        }
-
         setAreasData(updatedSectors);
       });
       return unsubscribe;
     });
-  }, [setAreasData, setAcknowledgedAlerts]);
+  }, [setAreasData]);
 
   // Real-time edge trigger alert scanner
   useEffect(() => {
     if (areasData.length === 0) return;
 
     let newTriggeredAlert: ActiveAlertInfo | null = null;
+    let generatedAlertId: string | undefined = undefined;
     const currentCriticalKeys: string[] = [];
 
     for (const area of areasData) {
@@ -126,7 +107,9 @@ export const useDashboardData = () => {
         if (m.sensor.status === 'critical') {
           currentCriticalKeys.push(key);
           if (!acknowledgedAlerts.includes(key) && !newTriggeredAlert && !activeModalAlert) {
+            generatedAlertId = DashboardApiService.generateAlertId();
             newTriggeredAlert = {
+              alertId: generatedAlertId,
               areaId: area.id,
               areaName: area.name,
               sourceType: 'machine',
@@ -152,7 +135,9 @@ export const useDashboardData = () => {
         if (env.sensor.status === 'critical') {
           currentCriticalKeys.push(key);
           if (!acknowledgedAlerts.includes(key) && !newTriggeredAlert && !activeModalAlert) {
+            generatedAlertId = DashboardApiService.generateAlertId();
             newTriggeredAlert = {
+              alertId: generatedAlertId,
               areaId: area.id,
               areaName: area.name,
               sourceType: 'environment',
@@ -168,12 +153,13 @@ export const useDashboardData = () => {
     }
 
     // Edge trigger action: show modal, track key, and record alert in Firebase
-    if (newTriggeredAlert) {
+    if (newTriggeredAlert && generatedAlertId) {
       setActiveModalAlert(newTriggeredAlert);
       setAcknowledgedAlerts([...acknowledgedAlerts, `${newTriggeredAlert.areaId}-${newTriggeredAlert.sensorType}`]);
       
-      // Asynchronously log this critical alert record to Firebase /alerts node
+      // Asynchronously log this critical alert record to Firebase /alerts node with pre-generated alertId
       DashboardApiService.logAlertRecord({
+        alertId: generatedAlertId,
         areaId: newTriggeredAlert.areaId,
         sourceType: newTriggeredAlert.sourceType,
         sensorName: newTriggeredAlert.sensorType,

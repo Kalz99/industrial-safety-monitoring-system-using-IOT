@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../hooks/useStore';
 import { useAlarmSound } from '../hooks/useAlarmSound';
+import { DashboardApiService } from '../services/dashboardApi';
 import { 
   X, 
   Flame, 
@@ -24,11 +25,24 @@ export const AlertModal: React.FC = () => {
 
   if (!activeModalAlert) return null;
 
-  const handleAcknowledge = () => {
+  // Passive dismiss: Close modal UI without changing the Firebase 'Alert Triggered' status
+  const handleDismiss = () => {
     setActiveModalAlert(null);
   };
 
+  // Explicit acknowledge: Update Firebase status to 'Acknowledged' and close
+  const handleAcknowledge = () => {
+    if (activeModalAlert.alertId) {
+      DashboardApiService.updateAlertStatus(activeModalAlert.alertId, 'Acknowledged');
+    }
+    setActiveModalAlert(null);
+  };
+
+  // Explicit acknowledge & explore: Update Firebase status to 'Acknowledged', close, and navigate
   const handleExplore = () => {
+    if (activeModalAlert.alertId) {
+      DashboardApiService.updateAlertStatus(activeModalAlert.alertId, 'Acknowledged');
+    }
     setSelectedAreaId(activeModalAlert.areaId);
     setActiveTab(activeModalAlert.sourceType === 'machine' ? 'analytics' : 'areas');
     setActiveModalAlert(null);
@@ -56,7 +70,7 @@ export const AlertModal: React.FC = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Blurred Backdrop */}
       <div 
-        onClick={handleAcknowledge}
+        onClick={handleDismiss}
         className="absolute inset-0 bg-[#090d16]/75 backdrop-blur-md transition-opacity duration-300"
       />
 
@@ -78,7 +92,7 @@ export const AlertModal: React.FC = () => {
             </span>
           </div>
           <button 
-            onClick={handleAcknowledge}
+            onClick={handleDismiss}
             className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />

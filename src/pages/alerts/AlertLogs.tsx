@@ -217,11 +217,19 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
 
                           {/* Status */}
                           <td className="p-4 pr-6 text-right">
-                            <Badge 
-                              label="Alert Triggered"
-                              severity="error"
-                              pulsing={true}
-                            />
+                             {alert.status === 'Acknowledged' ? (
+                               <Badge 
+                                 label="Acknowledged"
+                                 severity="success"
+                                 pulsing={false}
+                               />
+                             ) : (
+                               <Badge 
+                                 label="Alert Triggered"
+                                 severity="error"
+                                 pulsing={true}
+                               />
+                             )}
                           </td>
                         </tr>
                       );

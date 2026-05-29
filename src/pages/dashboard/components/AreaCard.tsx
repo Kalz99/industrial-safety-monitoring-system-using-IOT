@@ -45,34 +45,32 @@ export const AreaCard: React.FC<AreaCardProps> = ({ area, onExplore }) => {
   const badgeConfig = getBadgeConfig();
 
   return (
-    <div 
+    <div
       onClick={() => onExplore(area.id)}
       className={`flex flex-col bg-white dark:bg-[#0f172a]/60 rounded-3xl border ${badgeConfig.border} overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.015)] transition-all duration-500 hover:shadow-[0_12px_45px_rgba(0,0,0,0.035)] hover:-translate-y-1 cursor-pointer select-none`}
     >
       {/* Card Header Status Banner */}
-      <div className={`p-5 flex items-center justify-between border-b ${badgeConfig.border} ${
-        area.status === 'critical' 
-          ? 'bg-rose-500/[0.02]' 
-          : 'bg-slate-50/20'
-      }`}>
+      <div className={`p-5 flex items-center justify-between border-b ${badgeConfig.border} ${area.status === 'critical'
+        ? 'bg-rose-500/[0.02]'
+        : 'bg-slate-50/20'
+        }`}>
         <div className="flex items-center gap-3">
           <div className={`h-2.5 w-2.5 rounded-full relative flex`}>
             {area.status === 'critical' && (
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-450 opacity-75"></span>
             )}
-            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-              area.status === 'critical' ? 'bg-rose-550' : 'bg-emerald-500'
-            }`} />
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${area.status === 'critical' ? 'bg-rose-550' : 'bg-emerald-500'
+              }`} />
           </div>
           <h3 className="text-md font-semibold tracking-tight text-slate-800 dark:text-white">
             {area.name}
           </h3>
         </div>
         <div className="flex items-center gap-2">
-          <Badge 
-            label={badgeConfig.label} 
-            severity={badgeConfig.severity} 
-            pulsing={area.status !== 'normal'} 
+          <Badge
+            label={badgeConfig.label}
+            severity={badgeConfig.severity}
+            pulsing={area.status !== 'normal'}
           />
           <ArrowUpRight className="w-4 h-4 text-slate-400 dark:text-slate-550 group-hover:text-blue-500 transition-colors" />
         </div>
@@ -102,7 +100,7 @@ export const AreaCard: React.FC<AreaCardProps> = ({ area, onExplore }) => {
             />
             <SensorLabel
               type="temperature"
-              label="Motor Temp"
+              label="Motor Temperature"
               value={area.machineHealth.temperature.value}
               unit={area.machineHealth.temperature.unit}
               status={area.machineHealth.temperature.status}
@@ -125,13 +123,13 @@ export const AreaCard: React.FC<AreaCardProps> = ({ area, onExplore }) => {
             />
             <SensorLabel
               type="flame"
-              label="Flame Sensor"
+              label="Fire Detector"
               value={area.environment.flame.value}
               status={area.environment.flame.status}
             />
             <SensorLabel
               type="temperature"
-              label="Ambient Temp"
+              label="Ambient Temperature"
               value={area.environment.temperature.value}
               unit={area.environment.temperature.unit}
               status={area.environment.temperature.status}

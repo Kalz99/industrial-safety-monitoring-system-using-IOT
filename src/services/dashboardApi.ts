@@ -1,5 +1,6 @@
 import { ref, onValue, set, update } from 'firebase/database';
 import { database } from '../config/firebase';
+import { SENSOR_THRESHOLDS } from '../config/thresholds';
 import type { AreaTelemetry } from '../pages/dashboard/components/AreaCard';
 import type { SensorStatus } from '../components/SensorLabel';
 
@@ -45,13 +46,13 @@ export class DashboardApiService {
       }
     }
 
-    // Determine statuses based on industrial standards/thresholds
-    vibration.status = vibration.value > 5.0 ? 'critical' : 'normal';
-    current.status = current.value > 40.0 ? 'critical' : 'normal';
-    temperature.status = temperature.value > 75.0 ? 'critical' : 'normal';
-    smoke.status = smoke.value > 400 ? 'critical' : 'normal';
+    // Determine statuses based on industrial standards/thresholds from config
+    vibration.status = vibration.value > SENSOR_THRESHOLDS.machine.vibration ? 'critical' : 'normal';
+    current.status = current.value > SENSOR_THRESHOLDS.machine.current ? 'critical' : 'normal';
+    temperature.status = temperature.value > SENSOR_THRESHOLDS.machine.temperature ? 'critical' : 'normal';
+    smoke.status = smoke.value > SENSOR_THRESHOLDS.environment.smoke ? 'critical' : 'normal';
     flame.status = flame.value === 'Detected' ? 'critical' : 'normal';
-    envTemperature.status = envTemperature.value > 40.0 ? 'critical' : 'normal';
+    envTemperature.status = envTemperature.value > SENSOR_THRESHOLDS.environment.temperature ? 'critical' : 'normal';
 
     const isCritical = 
       vibration.status === 'critical' ||
@@ -60,6 +61,7 @@ export class DashboardApiService {
       smoke.status === 'critical' ||
       flame.status === 'critical' ||
       envTemperature.status === 'critical';
+
 
     // Store metadata so simulation or write-backs can refer to the correct keys
     return {

@@ -9,8 +9,6 @@ import {
   Zap, 
   Thermometer, 
   Wind,
-  BellRing,
-  AlertTriangle,
   ArrowRight
 } from 'lucide-react';
 

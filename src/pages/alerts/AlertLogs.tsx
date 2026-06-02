@@ -13,7 +13,6 @@ import {
   Activity, 
   Zap, 
   Thermometer, 
-  SlidersHorizontal,
   Building,
   Settings
 } from 'lucide-react';

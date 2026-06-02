@@ -1,13 +1,10 @@
 import React from 'react';
 import { 
-  MetricCard, 
-  type MetricStatus 
+  MetricCard
 } from '../../../components/MetricCard';
 import { 
   Building2, 
-  Settings, 
-  ShieldAlert, 
-  Bell 
+  Settings
 } from 'lucide-react';
 
 interface KpiStats {

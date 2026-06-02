@@ -11,11 +11,9 @@ import {
   Zap, 
   Thermometer, 
   Wind,
-  Calendar,
   AlertTriangle,
   Flame,
-  ShieldCheck,
-  Building
+  ShieldCheck
 } from 'lucide-react';
 
 interface AreaHistoryProps {
@@ -32,7 +30,6 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
   setSelectedAreaId,
   activeTab,
   setActiveTab,
-  onBack,
   mode = 'machine'
 }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');

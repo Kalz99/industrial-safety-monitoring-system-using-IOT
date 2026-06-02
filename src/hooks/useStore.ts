@@ -1,0 +1,42 @@
+import { create } from 'zustand';
+import type { AreaTelemetry } from '../pages/dashboard/components/AreaCard';
+
+export interface ActiveAlertInfo {
+  areaId: string;
+  areaName: string;
+  sourceType: 'machine' | 'environment';
+  sensorType: string;
+  sensorLabel: string;
+  value: number | string;
+  unit: string;
+  timestamp: string;
+  alertId?: string;
+}
+
+interface AppState {
+  selectedAreaId: string | null;
+  activeTab: string;
+  areasData: AreaTelemetry[];
+  activeModalAlert: ActiveAlertInfo | null;
+  acknowledgedAlerts: string[];
+  setSelectedAreaId: (id: string | null) => void;
+  setActiveTab: (tab: string) => void;
+  setAreasData: (data: AreaTelemetry[]) => void;
+  setActiveModalAlert: (alert: ActiveAlertInfo | null) => void;
+  setAcknowledgedAlerts: (alerts: string[]) => void;
+}
+
+export const useStore = create<AppState>((set) => ({
+  selectedAreaId: null,
+  activeTab: 'dashboard',
+  areasData: [],
+  activeModalAlert: null,
+  acknowledgedAlerts: [],
+  setSelectedAreaId: (id) => set({ selectedAreaId: id }),
+  setActiveTab: (tab) => set({ activeTab: tab }),
+  setAreasData: (data) => set({ areasData: data }),
+  setActiveModalAlert: (alert) => set({ activeModalAlert: alert }),
+  setAcknowledgedAlerts: (alerts) => set({ acknowledgedAlerts: alerts }),
+}));
+export default useStore;
+

@@ -6,6 +6,9 @@ import { Badge } from '../../components/Badge';
 import { TelemetryChart } from '../../components/TelemetryChart';
 import { useAreaHistory } from '../../hooks/useAreaHistory';
 import { useAreas } from '../../hooks/useAreas';
+import { useStore } from '../../hooks/useStore';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import { 
   Activity, 
   Zap, 
@@ -122,6 +125,8 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
 
   const currentMetric = metricDetails[selectedMetric];
 
+  const user = useStore((state) => state.user);
+
   return (
     <div className={`${theme === 'dark' ? 'dark bg-[#090d16]' : 'bg-[#f1f5f9]'} text-slate-850 dark:text-slate-100 flex min-h-screen font-sans antialiased overflow-hidden w-full transition-colors duration-500`}>
       {/* Sidebar Navigation */}
@@ -129,8 +134,8 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         alertCount={alertCount}
-        username="Alex Carter"
-        onLogout={() => alert("Securely logging out...")}
+        username={user?.email ? user.email.split('@')[0] : 'Alex Carter'}
+        onLogout={() => signOut(auth)}
       />
 
       {/* Main Content Area */}

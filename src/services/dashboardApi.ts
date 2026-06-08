@@ -1,6 +1,5 @@
 import { ref, onValue, set, update, push } from 'firebase/database';
 import { database } from '../config/firebase';
-import { SENSOR_THRESHOLDS } from '../config/thresholds';
 import type { AreaTelemetry } from '../pages/dashboard/components/AreaCard';
 import type { SensorStatus } from '../components/SensorLabel';
 
@@ -17,6 +16,7 @@ export class DashboardApiService {
     let current = { value: 0, unit: 'A', status: 'normal' as SensorStatus };
     let temperature = { value: 0, unit: '°C', status: 'normal' as SensorStatus };
     let machineId = 'machine-1'; // Fallback
+    let machineAlerts = { vibration: false, current: false, temp: false, temperature: false };
     
     if (data.machine_health) {
       const keys = Object.keys(data.machine_health);
@@ -26,6 +26,9 @@ export class DashboardApiService {
         vibration.value = Number(machine.vibration ?? 0);
         current.value = Number(machine.current ?? 0);
         temperature.value = Number(machine.temp ?? 0);
+        if (machine.alerts) {
+          machineAlerts = { ...machineAlerts, ...machine.alerts };
+        }
       }
     }
     
@@ -34,6 +37,7 @@ export class DashboardApiService {
     let flame = { value: 'None' as 'Detected' | 'None', status: 'normal' as SensorStatus };
     let envTemperature = { value: 0, unit: '°C', status: 'normal' as SensorStatus };
     let envId = 'env-1'; // Fallback
+    let envAlerts = { smoke: false, fire: false, flame: false, temp: false, temperature: false };
     
     if (data.environment) {
       const keys = Object.keys(data.environment);
@@ -43,16 +47,19 @@ export class DashboardApiService {
         smoke.value = Number(env.smoke ?? 0);
         flame.value = env.flame ? 'Detected' : 'None';
         envTemperature.value = Number(env.temp ?? 0);
+        if (env.alerts) {
+          envAlerts = { ...envAlerts, ...env.alerts };
+        }
       }
     }
 
-    // Determine statuses based on industrial standards/thresholds from config
-    vibration.status = vibration.value > SENSOR_THRESHOLDS.machine.vibration ? 'critical' : 'normal';
-    current.status = current.value > SENSOR_THRESHOLDS.machine.current ? 'critical' : 'normal';
-    temperature.status = temperature.value > SENSOR_THRESHOLDS.machine.temperature ? 'critical' : 'normal';
-    smoke.status = smoke.value > SENSOR_THRESHOLDS.environment.smoke ? 'critical' : 'normal';
-    flame.status = flame.value === 'Detected' ? 'critical' : 'normal';
-    envTemperature.status = envTemperature.value > SENSOR_THRESHOLDS.environment.temperature ? 'critical' : 'normal';
+    // Determine statuses based on alerts in Firebase
+    vibration.status = machineAlerts.vibration ? 'critical' : 'normal';
+    current.status = machineAlerts.current ? 'critical' : 'normal';
+    temperature.status = (machineAlerts.temperature || machineAlerts.temp) ? 'critical' : 'normal';
+    smoke.status = envAlerts.smoke ? 'critical' : 'normal';
+    flame.status = (envAlerts.fire || envAlerts.flame) ? 'critical' : 'normal';
+    envTemperature.status = (envAlerts.temperature || envAlerts.temp) ? 'critical' : 'normal';
 
     const isCritical = 
       vibration.status === 'critical' ||

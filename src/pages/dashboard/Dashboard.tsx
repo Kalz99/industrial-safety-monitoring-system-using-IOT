@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { Topbar } from '../../components/Topbar';
 import { AreaCard } from './components/AreaCard';
-
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { useStore } from '../../hooks/useStore';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 
 interface DashboardProps {
   activeTab: string;
@@ -17,6 +19,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, setActiveTab, o
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
   
+  const user = useStore((state) => state.user);
+
   // Call the live IOT sensor streaming hook
   const { areasData, kpiStats } = useDashboardData();
 
@@ -35,8 +39,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, setActiveTab, o
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         alertCount={kpiStats.activeAlerts}
-        username="Alex Carter"
-        onLogout={() => alert("Securely logging out...")}
+        username={user?.email ? user.email.split('@')[0] : 'Alex Carter'}
+        onLogout={() => signOut(auth)}
       />
 
       {/* Main Content Area */}

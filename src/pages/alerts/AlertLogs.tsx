@@ -6,6 +6,8 @@ import { Badge } from '../../components/Badge';
 import { useAlertLogs } from '../../hooks/useAlertLogs';
 import { useAreas } from '../../hooks/useAreas';
 import { useStore } from '../../hooks/useStore';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import { 
   BellRing, 
   Flame, 
@@ -49,6 +51,8 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
     }
   };
 
+  const user = useStore((state) => state.user);
+
   return (
     <div className={`${theme === 'dark' ? 'dark bg-[#090d16]' : 'bg-[#f1f5f9]'} text-slate-850 dark:text-slate-100 flex min-h-screen font-sans antialiased overflow-hidden w-full transition-colors duration-500`}>
       {/* Sidebar Navigation */}
@@ -56,8 +60,8 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         alertCount={stats.totalCount}
-        username="Alex Carter"
-        onLogout={() => alert("Securely logging out...")}
+        username={user?.email ? user.email.split('@')[0] : 'Alex Carter'}
+        onLogout={() => signOut(auth)}
       />
 
       {/* Main Content Area */}

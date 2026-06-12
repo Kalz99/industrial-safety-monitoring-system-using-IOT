@@ -7,6 +7,7 @@ import {
   Cpu,
   LogOut
 } from 'lucide-react';
+import logo1 from '../assets/logo1.png';
 
 interface SidebarProps {
   activeTab: string;
@@ -26,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = [
     { id: 'overview', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'areas', name: 'Area Conditions', icon: Map },
+    { id: 'machinehealth', name: 'Machine Health', icon: Cpu },
     { id: 'analytics', name: 'Machine Analytics', icon: Activity },
     { id: 'alerts', name: 'Alert Logs', icon: BellRing, badge: alertCount },
   ];
@@ -35,11 +37,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex flex-col gap-10">
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-2">
-          <div className="h-10 w-10 bg-blue-600/5 dark:bg-blue-600/10 border border-blue-500/10 dark:border-blue-500/20 rounded-2xl flex items-center justify-center">
-            <Cpu className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <div className="h-10 w-10 flex items-center justify-center overflow-hidden rounded-xl">
+            <img src={logo1} alt="Logo" className="h-full w-full object-contain" />
           </div>
           <div>
-            <h1 className="text-md font-semibold tracking-tight text-slate-900 dark:text-white uppercase">INDUS-SHIELD</h1>
+            <h1 className="text-xs font-bold tracking-tight text-slate-900 dark:text-white uppercase">Industrial Safety Core</h1>
             <span className="text-[10px] text-slate-400 font-medium tracking-widest uppercase">Safety Live</span>
           </div>
         </div>

@@ -9,7 +9,7 @@ const initialAreasData: AreaTelemetry[] = [
     name: 'Production Line 1',
     status: 'critical',
     machineHealth: {
-      vibration: { value: 3.4, unit: 'g', status: 'normal' },
+      vibration: { value: 3.4, unit: 'm/s2', status: 'normal' },
       current: { value: 28.5, unit: 'A', status: 'normal' },
       temperature: { value: 68.0, unit: '°C', status: 'normal' }
     },
@@ -24,7 +24,7 @@ const initialAreasData: AreaTelemetry[] = [
     name: 'Boiler Room Sector',
     status: 'critical',
     machineHealth: {
-      vibration: { value: 5.8, unit: 'g', status: 'critical' },
+      vibration: { value: 5.8, unit: 'm/s2', status: 'critical' },
       current: { value: 45.2, unit: 'A', status: 'normal' },
       temperature: { value: 82.5, unit: '°C', status: 'critical' }
     },
@@ -39,7 +39,7 @@ const initialAreasData: AreaTelemetry[] = [
     name: 'Storage Area A',
     status: 'normal',
     machineHealth: {
-      vibration: { value: 1.1, unit: 'g', status: 'normal' },
+      vibration: { value: 1.1, unit: 'm/s2', status: 'normal' },
       current: { value: 8.4, unit: 'A', status: 'normal' },
       temperature: { value: 35.2, unit: '°C', status: 'normal' }
     },
@@ -54,7 +54,7 @@ const initialAreasData: AreaTelemetry[] = [
     name: 'Main Assembly Hall',
     status: 'normal',
     machineHealth: {
-      vibration: { value: 1.8, unit: 'g', status: 'normal' },
+      vibration: { value: 1.8, unit: 'm/s2', status: 'normal' },
       current: { value: 14.2, unit: 'A', status: 'normal' },
       temperature: { value: 42.1, unit: '°C', status: 'normal' }
     },
@@ -73,6 +73,8 @@ export const useDashboardData = () => {
   const setAreasData = useStore((state) => state.setAreasData);
   const activeModalAlert = useStore((state) => state.activeModalAlert);
   const setActiveModalAlert = useStore((state) => state.setActiveModalAlert);
+  const activePredictionAlert = useStore((state) => state.activePredictionAlert);
+  const setActivePredictionAlert = useStore((state) => state.setActivePredictionAlert);
   const acknowledgedAlerts = useStore((state) => state.acknowledgedAlerts);
   const setAcknowledgedAlerts = useStore((state) => state.setAcknowledgedAlerts);
 
@@ -92,6 +94,8 @@ export const useDashboardData = () => {
 
     let newTriggeredAlert: ActiveAlertInfo | null = null;
     let generatedAlertId: string | undefined = undefined;
+    let newTriggeredPrediction: ActiveAlertInfo | null = null;
+    let generatedPredictionId: string | undefined = undefined;
     const currentCriticalKeys: string[] = [];
 
     for (const area of areasData) {
@@ -99,7 +103,7 @@ export const useDashboardData = () => {
       const machines = [
         { type: 'vibration', label: 'Vibration', sensor: area.machineHealth.vibration },
         { type: 'current', label: 'Amperage Draw', sensor: area.machineHealth.current },
-        { type: 'temperature', label: 'Motor Temperature', sensor: area.machineHealth.temperature }
+        { type: 'temperature', label: 'Machine Temperature', sensor: area.machineHealth.temperature }
       ];
 
       for (const m of machines) {
@@ -108,6 +112,30 @@ export const useDashboardData = () => {
           currentCriticalKeys.push(key);
           if (!acknowledgedAlerts.includes(key) && !newTriggeredAlert && !activeModalAlert) {
             generatedAlertId = DashboardApiService.generateAlertId();
+            
+            const machineMetrics = [];
+            if (area.machineHealth.vibration.status === 'critical') {
+              machineMetrics.push({
+                label: 'Machine Vibration',
+                value: area.machineHealth.vibration.value,
+                unit: area.machineHealth.vibration.unit
+              });
+            }
+            if (area.machineHealth.current.status === 'critical') {
+              machineMetrics.push({
+                label: 'Amperage Draw',
+                value: area.machineHealth.current.value,
+                unit: area.machineHealth.current.unit
+              });
+            }
+            if (area.machineHealth.temperature.status === 'critical') {
+              machineMetrics.push({
+                label: 'Machine Temperature',
+                value: area.machineHealth.temperature.value,
+                unit: area.machineHealth.temperature.unit
+              });
+            }
+
             newTriggeredAlert = {
               alertId: generatedAlertId,
               areaId: area.id,
@@ -117,7 +145,9 @@ export const useDashboardData = () => {
               sensorLabel: m.label,
               value: m.sensor.value,
               unit: m.sensor.unit || '',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              deviceName: area.machineName || 'Machine 1',
+              criticalMetrics: machineMetrics
             };
           }
         }
@@ -136,6 +166,30 @@ export const useDashboardData = () => {
           currentCriticalKeys.push(key);
           if (!acknowledgedAlerts.includes(key) && !newTriggeredAlert && !activeModalAlert) {
             generatedAlertId = DashboardApiService.generateAlertId();
+
+            const envMetrics = [];
+            if (area.environment.smoke.status === 'critical') {
+              envMetrics.push({
+                label: 'Smoke Density',
+                value: area.environment.smoke.value,
+                unit: area.environment.smoke.unit
+              });
+            }
+            if (area.environment.flame.status === 'critical') {
+              envMetrics.push({
+                label: 'Fire Detector',
+                value: area.environment.flame.value,
+                unit: ''
+              });
+            }
+            if (area.environment.temperature.status === 'critical') {
+              envMetrics.push({
+                label: 'Ambient Temperature',
+                value: area.environment.temperature.value,
+                unit: area.environment.temperature.unit
+              });
+            }
+
             newTriggeredAlert = {
               alertId: generatedAlertId,
               areaId: area.id,
@@ -145,9 +199,35 @@ export const useDashboardData = () => {
               sensorLabel: env.label,
               value: env.sensor.value,
               unit: 'unit' in env.sensor ? env.sensor.unit : '',
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              deviceName: area.envName || 'Environment 1',
+              criticalMetrics: envMetrics
             };
           }
+        }
+      }
+
+      // 3. Scan AI Predictions (prediction child got 1)
+      if (area.machineHealth.prediction === 1) {
+        const key = `${area.id}-prediction`;
+        currentCriticalKeys.push(key);
+        if (!acknowledgedAlerts.includes(key) && !newTriggeredPrediction && !activePredictionAlert) {
+          generatedPredictionId = DashboardApiService.generateAlertId();
+          newTriggeredPrediction = {
+            alertId: generatedPredictionId,
+            areaId: area.id,
+            areaName: area.name,
+            sourceType: 'machine',
+            sensorType: 'prediction',
+            sensorLabel: 'AI Prediction Alert',
+            value: 'Anomaly (1)',
+            unit: '',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            deviceName: area.machineName || 'Machine 1',
+            criticalMetrics: [
+              { label: 'Status', value: 'Maintenance Recommended' }
+            ]
+          };
         }
       }
     }
@@ -167,12 +247,27 @@ export const useDashboardData = () => {
       }).catch(err => console.error("Failed to register alert log in Firebase:", err));
     }
 
+    // Edge trigger action for AI predictions
+    if (newTriggeredPrediction && generatedPredictionId) {
+      setActivePredictionAlert(newTriggeredPrediction);
+      setAcknowledgedAlerts([...acknowledgedAlerts, `${newTriggeredPrediction.areaId}-prediction`]);
+
+      // Asynchronously log this prediction alert record to Firebase /alerts
+      DashboardApiService.logAlertRecord({
+        alertId: generatedPredictionId,
+        areaId: newTriggeredPrediction.areaId,
+        sourceType: newTriggeredPrediction.sourceType,
+        sensorName: newTriggeredPrediction.sensorType,
+        value: '1'
+      }).catch(err => console.error("Failed to register prediction alert in Firebase:", err));
+    }
+
     // Re-arm recovery nodes
     const stillCritical = acknowledgedAlerts.filter(k => currentCriticalKeys.includes(k));
     if (stillCritical.length !== acknowledgedAlerts.length) {
       setAcknowledgedAlerts(stillCritical);
     }
-  }, [areasData, acknowledgedAlerts, activeModalAlert, setActiveModalAlert, setAcknowledgedAlerts]);
+  }, [areasData, acknowledgedAlerts, activeModalAlert, setActiveModalAlert, activePredictionAlert, setActivePredictionAlert, setAcknowledgedAlerts]);
 
   // Compute live aggregates dynamically
   const kpiStats = useMemo(() => {

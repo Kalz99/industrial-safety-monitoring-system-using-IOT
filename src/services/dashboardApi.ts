@@ -1,6 +1,5 @@
 import { ref, onValue, set, update, push } from 'firebase/database';
 import { database } from '../config/firebase';
-import { SENSOR_THRESHOLDS } from '../config/thresholds';
 import type { AreaTelemetry } from '../pages/dashboard/components/AreaCard';
 import type { SensorStatus } from '../components/SensorLabel';
 
@@ -13,10 +12,12 @@ export class DashboardApiService {
     const name = data.area_name || 'Unnamed Sector';
     
     // Extract machine health (vibration, current, temperature) from nested map
-    let vibration = { value: 0, unit: 'g', status: 'normal' as SensorStatus };
+    let vibration = { value: 0, unit: 'm/s2', status: 'normal' as SensorStatus };
     let current = { value: 0, unit: 'A', status: 'normal' as SensorStatus };
     let temperature = { value: 0, unit: '°C', status: 'normal' as SensorStatus };
+    let prediction = 0;
     let machineId = 'machine-1'; // Fallback
+    let machineAlerts = { vibration: false, current: false, temp: false, temperature: false };
     
     if (data.machine_health) {
       const keys = Object.keys(data.machine_health);
@@ -26,6 +27,14 @@ export class DashboardApiService {
         vibration.value = Number(machine.vibration ?? 0);
         current.value = Number(machine.current ?? 0);
         temperature.value = Number(machine.temp ?? 0);
+        if (machine.prediction && typeof machine.prediction === 'object') {
+          prediction = Number(machine.prediction.needs_maintenance ?? 0);
+        } else {
+          prediction = Number(machine.prediction ?? 0);
+        }
+        if (machine.alerts) {
+          machineAlerts = { ...machineAlerts, ...machine.alerts };
+        }
       }
     }
     
@@ -34,6 +43,7 @@ export class DashboardApiService {
     let flame = { value: 'None' as 'Detected' | 'None', status: 'normal' as SensorStatus };
     let envTemperature = { value: 0, unit: '°C', status: 'normal' as SensorStatus };
     let envId = 'env-1'; // Fallback
+    let envAlerts = { smoke: false, fire: false, flame: false, temp: false, temperature: false };
     
     if (data.environment) {
       const keys = Object.keys(data.environment);
@@ -43,16 +53,23 @@ export class DashboardApiService {
         smoke.value = Number(env.smoke ?? 0);
         flame.value = env.flame ? 'Detected' : 'None';
         envTemperature.value = Number(env.temp ?? 0);
+        if (env.alerts) {
+          envAlerts = { ...envAlerts, ...env.alerts };
+        }
       }
     }
 
-    // Determine statuses based on industrial standards/thresholds from config
-    vibration.status = vibration.value > SENSOR_THRESHOLDS.machine.vibration ? 'critical' : 'normal';
-    current.status = current.value > SENSOR_THRESHOLDS.machine.current ? 'critical' : 'normal';
-    temperature.status = temperature.value > SENSOR_THRESHOLDS.machine.temperature ? 'critical' : 'normal';
-    smoke.status = smoke.value > SENSOR_THRESHOLDS.environment.smoke ? 'critical' : 'normal';
-    flame.status = flame.value === 'Detected' ? 'critical' : 'normal';
-    envTemperature.status = envTemperature.value > SENSOR_THRESHOLDS.environment.temperature ? 'critical' : 'normal';
+    // Determine statuses based on alerts in Firebase
+    vibration.status = machineAlerts.vibration ? 'critical' : 'normal';
+    current.status = machineAlerts.current ? 'critical' : 'normal';
+    temperature.status = (machineAlerts.temperature || machineAlerts.temp) ? 'critical' : 'normal';
+    smoke.status = envAlerts.smoke ? 'critical' : 'normal';
+    flame.status = (envAlerts.fire || envAlerts.flame) ? 'critical' : 'normal';
+    envTemperature.status = (envAlerts.temperature || envAlerts.temp) ? 'critical' : 'normal';
+
+    if (flame.status === 'critical') {
+      flame.value = 'Detected';
+    }
 
     const isCritical = 
       vibration.status === 'critical' ||
@@ -63,13 +80,18 @@ export class DashboardApiService {
       envTemperature.status === 'critical';
 
 
+    const machineName = data.machine_health?.[machineId]?.machine_name || 'Machine 1';
+    const envName = data.environment?.[envId]?.env_name || 'Environment 1';
+
     // Store metadata so simulation or write-backs can refer to the correct keys
     return {
       id: areaId,
       name,
       status: isCritical ? 'critical' : 'normal',
-      machineHealth: { vibration, current, temperature },
+      machineHealth: { vibration, current, temperature, prediction },
       environment: { smoke, flame, temperature: envTemperature },
+      machineName,
+      envName,
       // Inject internal key details for dynamic mapping back to DB
       _meta: { machineId, envId }
     } as any;
@@ -277,6 +299,28 @@ export class DashboardApiService {
     }, (error) => {
       console.error('Alerts subscription error:', error);
     });
+  }
+
+  /**
+   * Logs a machine prediction alert dismissal or acknowledgement to /machine_alerts child node.
+   */
+  static async logMachineAlert(alertInfo: {
+    areaId: string;
+    machineId: string;
+    vibration: number;
+    current: number;
+    temperature: number;
+    status: 'Dismissed' | 'Acknowledged';
+    timestamp: number;
+  }): Promise<void> {
+    try {
+      const machineAlertsRef = ref(database, 'machine_alerts');
+      const newAlertRef = push(machineAlertsRef);
+      await set(newAlertRef, alertInfo);
+      console.log('Machine alert logged successfully to /machine_alerts');
+    } catch (error) {
+      console.error('Failed to log machine alert:', error);
+    }
   }
 }
 export default DashboardApiService;

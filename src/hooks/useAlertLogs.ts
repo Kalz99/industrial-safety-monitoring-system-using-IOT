@@ -43,8 +43,8 @@ export const useAlertLogs = () => {
         message = `Smoke density threshold limit crossed.`;
         valueWithUnit = `${alert.value} ppm`;
       } else if (sensorName === 'vibration') {
-        message = `Machinery vibration threshold limit crossed.`;
-        valueWithUnit = `${alert.value} g`;
+        message = 'Machinery vibration threshold limit crossed.';
+        valueWithUnit = `${alert.value} m/s2`;
       } else if (sensorName === 'current') {
         message = `Electrical amperage draw threshold crossed.`;
         valueWithUnit = `${alert.value} A`;

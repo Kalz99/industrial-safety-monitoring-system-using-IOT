@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Sidebar } from '../../components/Sidebar';
 import { Topbar } from '../../components/Topbar';
 import { AreaCard } from './components/AreaCard';
-
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { useStore } from '../../hooks/useStore';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 
 interface DashboardProps {
   activeTab: string;
@@ -16,7 +18,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, setActiveTab, o
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
-  
+
+  const user = useStore((state) => state.user);
+
   // Call the live IOT sensor streaming hook
   const { areasData, kpiStats } = useDashboardData();
 
@@ -31,18 +35,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, setActiveTab, o
   return (
     <div className={`${theme === 'dark' ? 'dark bg-[#090d16]' : 'bg-[#f1f5f9]'} text-slate-850 dark:text-slate-100 flex min-h-screen font-sans antialiased overflow-hidden w-full transition-colors duration-500`}>
       {/* Sidebar Navigation */}
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         alertCount={kpiStats.activeAlerts}
-        username="Alex Carter"
-        onLogout={() => alert("Securely logging out...")}
+        username={user?.email ? user.email.split('@')[0] : 'Alex Carter'}
+        onLogout={() => signOut(auth)}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col p-4 gap-6 overflow-y-auto max-h-screen">
         {/* Topbar Header */}
-        <Topbar 
+        <Topbar
           activeTab={activeTab}
           theme={theme}
           setTheme={setTheme}
@@ -56,10 +60,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, setActiveTab, o
               </span>
               <div className="flex flex-col gap-0.5 text-left">
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                  Enable Desktop Safety Alerts
+                  Enable Real-Time Safety Notifications
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Stay updated on critical sensor anomalies in real-time, even when this tab is minimized or closed.
+                  Enable notifications to receive real-time alerts whenever hazardous conditions or machine abnormalities are detected.
                 </p>
               </div>
             </div>

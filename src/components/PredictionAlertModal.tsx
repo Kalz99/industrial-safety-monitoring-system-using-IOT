@@ -5,8 +5,7 @@ import { DashboardApiService } from '../services/dashboardApi';
 import {
   X,
   BrainCircuit,
-  ArrowRight,
-  ShieldAlert
+  ArrowRight
 } from 'lucide-react';
 
 export const PredictionAlertModal: React.FC = () => {

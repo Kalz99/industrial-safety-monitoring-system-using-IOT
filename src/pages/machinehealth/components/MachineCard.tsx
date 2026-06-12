@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, History } from 'lucide-react';
+import { History } from 'lucide-react';
 
 export interface MachineData {
   id: string;

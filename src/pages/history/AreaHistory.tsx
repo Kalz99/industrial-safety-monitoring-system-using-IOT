@@ -16,7 +16,6 @@ import {
   Wind,
   AlertTriangle,
   Flame,
-  ShieldCheck,
   Loader2,
   SlidersHorizontal
 } from 'lucide-react';
@@ -58,7 +57,7 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
 
   // Compute dynamic chart data based on selected metric and active mode
   const chartData = useMemo(() => {
-    return records.map((r, index) => {
+    return records.map((r) => {
       let value = 0;
       switch (selectedMetric) {
         case 'vibration':

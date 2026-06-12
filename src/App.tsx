@@ -5,10 +5,13 @@ import { Dashboard } from './pages/dashboard/Dashboard';
 import { AreaHistory } from './pages/history/AreaHistory';
 import { AlertLogs } from './pages/alerts/AlertLogs';
 import { Login } from './pages/login/login';
+import { MachineHealth } from './pages/machinehealth/MachineHealth';
 import { AlertModal } from './components/AlertModal';
+import { PredictionAlertModal } from './components/PredictionAlertModal';
 import { PushNotificationService } from './services/pushNotification';
 import { useStore } from './hooks/useStore';
-import { Cpu, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import logo1 from './assets/logo1.png';
 
 function App() {
   const activeTab = useStore((state) => state.activeTab);
@@ -88,8 +91,8 @@ function App() {
         <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-rose-500/5 blur-[120px] pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <div className="h-16 w-16 bg-blue-600/15 border border-blue-500/30 rounded-2xl flex items-center justify-center animate-pulse">
-            <Cpu className="w-8 h-8 text-blue-400" />
+          <div className="h-16 w-16 flex items-center justify-center overflow-hidden rounded-2xl animate-pulse">
+            <img src={logo1} alt="Logo" className="h-full w-full object-contain" />
           </div>
           <div className="flex items-center gap-2 text-slate-350 font-medium text-sm">
             <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
@@ -109,6 +112,7 @@ function App() {
   return (
     <>
       <AlertModal />
+      <PredictionAlertModal />
       {activeTab === 'analytics' ? (
         <AreaHistory 
           areaId={selectedAreaId || 'prod-line-1'} 
@@ -126,6 +130,11 @@ function App() {
           setActiveTab={setActiveTab}
           onBack={handleBackToDashboard} 
           mode="environment"
+        />
+      ) : activeTab === 'machinehealth' ? (
+        <MachineHealth 
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
         />
       ) : activeTab === 'alerts' ? (
         <AlertLogs 

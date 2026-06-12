@@ -11,12 +11,15 @@ export interface AreaTelemetry {
     vibration: { value: number; unit: string; status: SensorStatus };
     current: { value: number; unit: string; status: SensorStatus };
     temperature: { value: number; unit: string; status: SensorStatus };
+    prediction?: number;
   };
   environment: {
     smoke: { value: number; unit: string; status: SensorStatus };
     flame: { value: 'Detected' | 'None'; status: SensorStatus };
     temperature: { value: number; unit: string; status: SensorStatus };
   };
+  machineName?: string;
+  envName?: string;
 }
 
 interface AreaCardProps {

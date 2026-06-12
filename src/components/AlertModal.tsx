@@ -2,12 +2,12 @@ import React from 'react';
 import { useStore } from '../hooks/useStore';
 import { useAlarmSound } from '../hooks/useAlarmSound';
 import { DashboardApiService } from '../services/dashboardApi';
-import { 
-  X, 
-  Flame, 
-  Activity, 
-  Zap, 
-  Thermometer, 
+import {
+  X,
+  Flame,
+  Activity,
+  Zap,
+  Thermometer,
   Wind,
   ArrowRight
 } from 'lucide-react';
@@ -67,14 +67,14 @@ export const AlertModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Blurred Backdrop */}
-      <div 
+      <div
         onClick={handleDismiss}
         className="absolute inset-0 bg-[#090d16]/75 backdrop-blur-md transition-opacity duration-300"
       />
 
       {/* Glowing Modal Box (Glassmorphism layout) */}
       <div className="relative w-full max-w-md bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-lg border border-rose-500/30 rounded-[32px] shadow-[0_20px_50px_rgba(239,68,68,0.15)] overflow-hidden transform transition-all duration-500 scale-100 flex flex-col p-6 gap-6">
-        
+
         {/* Glowing Top Alert Light */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-orange-500 to-rose-600 animate-pulse" />
 
@@ -86,10 +86,10 @@ export const AlertModal: React.FC = () => {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
             </span>
             <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest leading-none">
-              Live Edge Alert Event
+              Live
             </span>
           </div>
-          <button 
+          <button
             onClick={handleDismiss}
             className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
           >
@@ -106,9 +106,8 @@ export const AlertModal: React.FC = () => {
             <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
               {activeModalAlert.areaName}
             </h2>
-            <span className={`text-[10px] uppercase font-bold tracking-widest ${
-              isEnvironmental ? 'text-orange-500' : 'text-blue-500'
-            }`}>
+            <span className={`text-[10px] uppercase font-bold tracking-widest ${isEnvironmental ? 'text-orange-500' : 'text-blue-500'
+              }`}>
               {isEnvironmental ? 'Environmental Hazard Detected' : 'Machinery Stress Detected'}
             </span>
           </div>
@@ -117,28 +116,51 @@ export const AlertModal: React.FC = () => {
         {/* Sensor Breakdown Box */}
         <div className="bg-rose-500/[0.03] border border-rose-500/10 rounded-2xl p-4 flex flex-col gap-3">
           <div className="flex justify-between items-center text-xs">
-            <span className="text-slate-400 dark:text-slate-500 font-medium">Trigger Sensor</span>
-            <span className="font-semibold text-slate-800 dark:text-slate-200">{activeModalAlert.sensorLabel}</span>
+            <span className="text-slate-400 dark:text-slate-550 font-medium">
+              {activeModalAlert.sourceType === 'machine' ? 'Machine Name' : 'Environment Name'}
+            </span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              {activeModalAlert.deviceName || (activeModalAlert.sourceType === 'machine' ? 'Machine 1' : 'Environment 1')}
+            </span>
           </div>
-          <div className="h-px bg-slate-100 dark:bg-slate-800/40 w-full" />
-          <div className="flex justify-between items-baseline">
-            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">Recorded Value</span>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-lg font-mono font-bold text-rose-600 dark:text-rose-450">
-                {activeModalAlert.value}
-              </span>
-              {activeModalAlert.unit && (
-                <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wide">
-                  {activeModalAlert.unit}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="h-px bg-slate-100 dark:bg-slate-800/40 w-full" />
-          <div className="flex justify-between items-center text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider pl-0.5">
-            <span>Log Timestamp</span>
-            <span>{activeModalAlert.timestamp}</span>
-          </div>
+
+          {activeModalAlert.criticalMetrics && activeModalAlert.criticalMetrics.length > 0 ? (
+            activeModalAlert.criticalMetrics.map((metric, idx) => (
+              <React.Fragment key={idx}>
+                <div className="h-px bg-slate-100 dark:bg-slate-800/40 w-full" />
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-slate-400 dark:text-slate-550 font-medium">{metric.label}</span>
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-sm font-mono font-bold text-rose-600 dark:text-rose-450">
+                      {metric.value}
+                    </span>
+                    {metric.unit && (
+                      <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wide ml-0.5">
+                        {metric.unit}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </React.Fragment>
+            ))
+          ) : (
+            <>
+              <div className="h-px bg-slate-100 dark:bg-slate-800/40 w-full" />
+              <div className="flex justify-between items-baseline">
+                <span className="text-xs text-slate-400 dark:text-slate-550 font-medium">{activeModalAlert.sensorLabel}</span>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-sm font-mono font-bold text-rose-600 dark:text-rose-450">
+                    {activeModalAlert.value}
+                  </span>
+                  {activeModalAlert.unit && (
+                    <span className="text-[10px] text-rose-500 font-bold uppercase tracking-wide ml-0.5">
+                      {activeModalAlert.unit}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Action Buttons */}

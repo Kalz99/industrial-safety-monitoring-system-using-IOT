@@ -1,6 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@theme {
+  --color-blue-400: #ffa133;
+  --color-blue-500: #ff8c1a;
+  --color-blue-555: #f07b00;
+  --color-blue-550: #eb7700;
+  --color-blue-600: #F77F00;
+  --color-blue-700: #d66d00;
+  --color-blue-800: #b55b00;
+  --color-blue-900: #8c4600;
+}
+
 @variant dark (&:where(.dark, .dark *));
 
 :root {

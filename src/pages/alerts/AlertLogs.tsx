@@ -16,7 +16,8 @@ import {
   Zap, 
   Thermometer, 
   Building,
-  Settings
+  Settings,
+  SlidersHorizontal
 } from 'lucide-react';
 
 
@@ -82,27 +83,6 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
                 Alert Logs
               </h1>
             </div>
-
-            {/* Right section: Area selector dropdown */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/30 rounded-2xl p-1.5 shadow-inner">
-                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider">
-                  Select Sector
-                </span>
-                <select
-                  value={filterArea}
-                  onChange={(e) => setFilterArea(e.target.value)}
-                  className="bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 rounded-xl px-3 py-1 border border-slate-100 dark:border-slate-800/40 outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
-                >
-                  <option value="all">All Sectors</option>
-                  {areasList.map((area) => (
-                    <option key={area.id} value={area.id}>
-                      {area.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
           </div>
         </Topbar>
 
@@ -149,6 +129,44 @@ export const AlertLogs: React.FC<AlertLogsProps> = ({ activeTab, setActiveTab })
             );
           })()}
 
+
+          {/* Filters Card Area */}
+          <div className="bg-white dark:bg-[#0f172a]/60 border border-slate-100 dark:border-slate-800/40 rounded-3xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.01)] w-full">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600/5 dark:bg-blue-600/10 rounded-xl flex items-center justify-center border border-blue-500/10">
+                <SlidersHorizontal className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
+                  Filter Alert Logs
+                </h3>
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                  Narrow down real-time alerts by active sector
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Area Selector */}
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/30 rounded-2xl p-1.5 shadow-inner">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider">
+                  Select Sector
+                </span>
+                <select
+                  value={filterArea}
+                  onChange={(e) => setFilterArea(e.target.value)}
+                  className="bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 rounded-xl px-3 py-1 border border-slate-100 dark:border-slate-800/40 outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+                >
+                  <option value="all">All Sectors</option>
+                  {areasList.map((area) => (
+                    <option key={area.id} value={area.id}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
           {/* Alarm Log Feed */}
           <div className="bg-white dark:bg-[#0f172a]/60 border border-slate-100 dark:border-slate-800/40 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.01)] w-full">

@@ -34,10 +34,10 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({
 
   const width = 800;
   const height = 280;
-  const paddingLeft = 50;
+  const paddingLeft = 65;
   const paddingRight = 20;
   const paddingTop = 30;
-  const paddingBottom = 40;
+  const paddingBottom = 50;
 
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
@@ -101,7 +101,7 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({
                 textAnchor="end" 
                 className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 fill-current"
               >
-                {gridValue}
+                {gridValue} {metricConfig.unit}
               </text>
             </g>
           );
@@ -109,14 +109,17 @@ export const TelemetryChart: React.FC<TelemetryChartProps> = ({
 
         {/* X Axis Timestamps */}
         {points.map((pt, index) => {
-          if (index % 4 !== 0 && index !== points.length - 1) return null;
+          // Dynamic interval to render approximately 8-12 labels max on the screen
+          const labelInterval = Math.max(1, Math.ceil(points.length / 10));
+          if (index % labelInterval !== 0 && index !== points.length - 1) return null;
           return (
             <text
               key={index}
               x={pt.x}
-              y={height - 12}
-              textAnchor="middle"
-              className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 fill-current opacity-70"
+              y={height - 22}
+              textAnchor="end"
+              transform={`rotate(-25, ${pt.x}, ${height - 22})`}
+              className="text-[8.5px] font-semibold text-slate-400 dark:text-slate-500 fill-current opacity-70"
             >
               {pt.label}
             </text>

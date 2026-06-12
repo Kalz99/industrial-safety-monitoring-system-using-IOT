@@ -16,7 +16,9 @@ import {
   Wind,
   AlertTriangle,
   Flame,
-  ShieldCheck
+  ShieldCheck,
+  Loader2,
+  SlidersHorizontal
 } from 'lucide-react';
 
 interface AreaHistoryProps {
@@ -39,13 +41,16 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
   const { areasList, areaNamesMap } = useAreas();
   const areaName = areaNamesMap[areaId] || 'Unknown Sector';
 
-  // Fetch telemetry records
-  const { records, stats } = useAreaHistory(areaId);
+  const [timeRange, setTimeRange] = useState<number>(24);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+
+  // Fetch telemetry records with dynamic timeRange
+  const { records, stats, loading, error, isFallback } = useAreaHistory(areaId, mode, timeRange, selectedDate || null);
 
   // Available metrics depend on mode
   const metricsList = mode === 'environment' 
     ? (['temperature', 'smoke'] as const)
-    : (['temperature', 'vibration', 'current', 'smoke'] as const);
+    : (['temperature', 'vibration', 'current'] as const);
 
   const [selectedMetric, setSelectedMetric] = useState<'vibration' | 'temperature' | 'current' | 'smoke'>(
     mode === 'environment' ? 'temperature' : 'temperature'
@@ -53,7 +58,7 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
 
   // Compute dynamic chart data based on selected metric and active mode
   const chartData = useMemo(() => {
-    return records.map(r => {
+    return records.map((r, index) => {
       let value = 0;
       switch (selectedMetric) {
         case 'vibration':
@@ -66,15 +71,26 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
           value = r.environment.smoke;
           break;
         default:
-          // temperature maps to Ambient in environment mode, Motor in machine mode
           value = mode === 'environment' ? r.environment.temperature : r.machineHealth.temperature;
       }
+      // For short time ranges (24h) or custom date, show hour component. For longer, show Date + Hour.
+      const parts = r.timestamp.split(' ');
+      const hasGmt = parts.includes('(GMT+5:30)');
+      let timePart = parts[0];
+      if (timePart.startsWith('0')) {
+        timePart = timePart.substring(1);
+      }
+      const ampm = parts[1].toLowerCase();
+      
+      const label = (timeRange <= 24 || selectedDate)
+        ? `${timePart} ${ampm}`
+        : `${hasGmt ? parts[3] : parts[2]} ${hasGmt ? parts[4] : parts[3]} ${timePart} ${ampm}`;
       return {
-        label: r.timestamp.split(' ')[0], // only the time component
+        label,
         value
       };
     });
-  }, [records, selectedMetric, mode]);
+  }, [records, selectedMetric, mode, timeRange, selectedDate]);
 
   // Compute alert counts based on active mode
   const alertCount = useMemo(() => {
@@ -102,7 +118,7 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
     },
     vibration: { 
       label: 'Machine Vibration', 
-      unit: 'g', 
+      unit: 'm/s2', 
       icon: Activity, 
       color: '#3b82f6', 
       gradientId: 'vibGrad' 
@@ -158,8 +174,132 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
               </h1>
             </div>
 
-            {/* Right section: Area selector */}
+            {/* Selector-free Topbar */}
+          </div>
+        </Topbar>
+
+        {/* Dynamic Page Container */}
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[300px] gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Fetching telemetry history from Azure Table Storage...</p>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1">
+            {isFallback && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 text-xs text-amber-500 font-medium shadow-sm animate-pulse">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                <div className="flex flex-col gap-0.5">
+                  <span>Showing simulated telemetry records (Azure Table Storage offline or SAS Token invalid)</span>
+                  {error && <span className="text-[10px] text-amber-500/70 font-mono">Reason: {error}</span>}
+                </div>
+              </div>
+            )}
+            
+            {/* Quick Metrics Averages (changes based on Mode) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+            {mode === 'environment' ? (
+              <>
+                <MetricCard 
+                  label="24h Avg Ambient Temp"
+                  value={`${stats.avgAmbTemp}°C`}
+                  icon={Thermometer}
+                  status={stats.avgAmbTemp > 38 ? 'critical' : 'normal'}
+                />
+                <MetricCard 
+                  label="24h Avg Smoke Density"
+                  value={`${stats.avgSmoke} ppm`}
+                  icon={Wind}
+                  status={stats.avgSmoke > 350 ? 'critical' : 'normal'}
+                />
+                <MetricCard 
+                  label="Flame Incidents"
+                  value={stats.flameTriggers > 0 ? `${stats.flameTriggers} Triggers` : '0'}
+                  subtext={stats.flameTriggers > 0 ? 'Urgent inspection required' : ''}
+                  icon={Flame}
+                  status={stats.flameTriggers > 0 ? 'critical' : 'normal'}
+                />
+              </>
+            ) : (
+              <>
+                <MetricCard 
+                  label="24h Avg Motor Temp"
+                  value={`${stats.avgMotTemp}°C`}
+                  icon={Thermometer}
+                  status={stats.avgMotTemp > 70 ? 'critical' : 'normal'}
+                />
+                <MetricCard 
+                  label="24h Avg Vibration"
+                  value={`${stats.avgVibration} m/s2`}
+                  icon={Activity}
+                  status={stats.avgVibration > 4.0 ? 'critical' : 'normal'}
+                />
+                <MetricCard 
+                  label="24h Avg Amperage"
+                  value={`${stats.avgCurrent} A`}
+                  icon={Zap}
+                  status={stats.avgCurrent > 35.0 ? 'critical' : 'normal'}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Filters Card Area */}
+          <div className="bg-white dark:bg-[#0f172a]/60 border border-slate-100 dark:border-slate-800/40 rounded-3xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgb(0,0,0,0.01)] w-full">
             <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600/5 dark:bg-blue-600/10 rounded-xl flex items-center justify-center border border-blue-500/10">
+                <SlidersHorizontal className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
+                  Filter Telemetry Data
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Date Filter Selector */}
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/30 rounded-2xl p-1.5 shadow-inner">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider">
+                  Select Date
+                </span>
+                <div className="relative flex items-center">
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 rounded-xl pl-3 pr-8 py-1 border border-slate-100 dark:border-slate-800/40 outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm [color-scheme:light] dark:[color-scheme:dark]"
+                  />
+                  {selectedDate && (
+                    <button
+                      onClick={() => setSelectedDate('')}
+                      className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold leading-none p-0.5 cursor-pointer bg-transparent border-none"
+                      title="Clear date filter"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Time Range Selector */}
+              <div className={`flex items-center gap-2 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/30 rounded-2xl p-1.5 shadow-inner transition-opacity duration-300 ${selectedDate ? 'opacity-40 pointer-events-none' : ''}`}>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider">
+                  Time Range
+                </span>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(Number(e.target.value))}
+                  disabled={!!selectedDate}
+                  className="bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 rounded-xl px-3 py-1 border border-slate-100 dark:border-slate-800/40 outline-none cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+                >
+                  <option value={24}>Last 24 Hours</option>
+                  <option value={168}>Last 7 Days</option>
+                  <option value={720}>Last 30 Days</option>
+                </select>
+              </div>
+
+              {/* Area Selector */}
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800/30 rounded-2xl p-1.5 shadow-inner">
                 <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider">
                   Active Area
@@ -178,77 +318,6 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
               </div>
             </div>
           </div>
-        </Topbar>
-
-        {/* Dynamic Page Container */}
-        <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1">
-          
-          {/* Quick Metrics Averages (changes based on Mode) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 w-full">
-            {mode === 'environment' ? (
-              <>
-                <MetricCard 
-                  label="24h Avg Ambient Temp"
-                  value={`${stats.avgAmbTemp}°C`}
-                  subtext="Regulated ventilation active"
-                  icon={Thermometer}
-                  status={stats.avgAmbTemp > 38 ? 'critical' : 'normal'}
-                />
-                <MetricCard 
-                  label="24h Avg Smoke Density"
-                  value={`${stats.avgSmoke} ppm`}
-                  subtext={`Peak: ${stats.maxSmoke} ppm`}
-                  icon={Wind}
-                  status={stats.avgSmoke > 350 ? 'critical' : 'normal'}
-                />
-                <MetricCard 
-                  label="Flame Incidents"
-                  value={stats.flameTriggers > 0 ? `${stats.flameTriggers} Triggers` : 'None'}
-                  subtext={stats.flameTriggers > 0 ? 'Urgent inspection required' : 'Sensors nominal'}
-                  icon={Flame}
-                  status={stats.flameTriggers > 0 ? 'critical' : 'normal'}
-                />
-                <MetricCard 
-                  label="Environmental Safety"
-                  value={alertCount > 0 ? 'Warnings' : 'Nominal'}
-                  subtext={alertCount > 0 ? `${alertCount} safety logs flagged` : 'All safe thresholds met'}
-                  icon={ShieldCheck}
-                  status={alertCount > 0 ? 'critical' : 'normal'}
-                />
-              </>
-            ) : (
-              <>
-                <MetricCard 
-                  label="24h Avg Motor Temp"
-                  value={`${stats.avgMotTemp}°C`}
-                  subtext={`Peak: ${stats.maxMotTemp}°C`}
-                  icon={Thermometer}
-                  status={stats.avgMotTemp > 70 ? 'critical' : 'normal'}
-                />
-                <MetricCard 
-                  label="24h Avg Vibration"
-                  value={`${stats.avgVibration} g`}
-                  subtext={`Peak: ${stats.maxVibration} g`}
-                  icon={Activity}
-                  status={stats.avgVibration > 4.0 ? 'critical' : 'normal'}
-                />
-                <MetricCard 
-                  label="24h Avg Amperage"
-                  value={`${stats.avgCurrent} A`}
-                  subtext={`Peak: ${stats.maxCurrent} A`}
-                  icon={Zap}
-                  status={stats.avgCurrent > 35.0 ? 'critical' : 'normal'}
-                />
-                <MetricCard 
-                  label="24h Avg Smoke Density"
-                  value={`${stats.avgSmoke} ppm`}
-                  subtext={stats.flameTriggers > 0 ? `Flame detected ${stats.flameTriggers}x` : 'No Flame Incidents'}
-                  icon={stats.flameTriggers > 0 ? Flame : Wind}
-                  status={stats.avgSmoke > 300 || stats.flameTriggers > 0 ? 'critical' : 'normal'}
-                />
-              </>
-            )}
-          </div>
 
           {/* Interactive Chart Container */}
           <div className="bg-white dark:bg-[#0f172a]/60 border border-slate-100 dark:border-slate-800/40 rounded-3xl p-6 flex flex-col gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.01)] w-full">
@@ -263,9 +332,6 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
                   <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
                     {currentMetric.label} Analytics Graph
                   </h3>
-                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                    Hover nodes to track dynamic sensor variations
-                  </span>
                 </div>
               </div>
 
@@ -292,7 +358,6 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
               </div>
             </div>
 
-            {/* Reusable Global TelemetryChart */}
             <TelemetryChart 
               chartData={chartData}
               selectedMetric={selectedMetric}
@@ -308,7 +373,7 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
                 Detailed {mode === 'environment' ? 'Environment' : 'Telemetry'} Log Records
               </h3>
               <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800/50 px-2.5 py-1 rounded-xl">
-                24 Hourly Readings
+                {records.length} Readings {selectedDate ? `for ${selectedDate}` : ''}
               </span>
             </div>
 
@@ -331,8 +396,6 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
                       <th className="p-4">Vibration</th>
                       <th className="p-4">Current Draw</th>
                       <th className="p-4">Motor Temp</th>
-                      <th className="p-4">Smoke Density</th>
-                      <th className="p-4">Flame Detector</th>
                       <th className="p-4 pr-6 text-right">Status</th>
                     </tr>
                   </thead>
@@ -390,7 +453,7 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
                           <>
                             <td className="p-4">
                               <span className={`font-semibold ${record.machineHealth.vibrationStatus === 'critical' ? 'text-rose-600 dark:text-rose-450' : 'text-slate-800 dark:text-slate-200'}`}>
-                                {record.machineHealth.vibration} g
+                                {record.machineHealth.vibration} m/s2
                               </span>
                             </td>
                             <td className="p-4">
@@ -402,21 +465,6 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
                               <span className={`font-semibold ${record.machineHealth.temperatureStatus === 'critical' ? 'text-rose-600 dark:text-rose-450' : 'text-slate-800 dark:text-slate-200'}`}>
                                 {record.machineHealth.temperature}°C
                               </span>
-                            </td>
-                            <td className="p-4 font-semibold text-slate-800 dark:text-slate-200">
-                              <span className={`font-semibold ${record.environment.smokeStatus === 'critical' ? 'text-rose-600 dark:text-rose-450' : 'text-slate-800 dark:text-slate-200'}`}>
-                                {record.environment.smoke} ppm
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              {record.environment.flame === 'Detected' ? (
-                                <span className="flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-450">
-                                  <AlertTriangle className="w-3.5 h-3.5" />
-                                  Detected
-                                </span>
-                              ) : (
-                                <span className="text-slate-400 font-medium">None</span>
-                              )}
                             </td>
                           </>
                         )}
@@ -435,7 +483,8 @@ export const AreaHistory: React.FC<AreaHistoryProps> = ({
             </div>
           </div>
 
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

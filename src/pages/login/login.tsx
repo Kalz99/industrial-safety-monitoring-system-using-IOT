@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLogin } from '../../hooks/useLogin';
-import { Cpu, Mail, Lock, ShieldAlert, CheckCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, ShieldAlert, CheckCircle, Loader2 } from 'lucide-react';
+import logo1 from '../../assets/logo1.png';
 
 export const Login: React.FC = () => {
   const {
@@ -25,18 +26,14 @@ export const Login: React.FC = () => {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center gap-3 mb-8 text-center">
-          <div className="h-14 w-14 bg-blue-600/5 border border-blue-500/10 rounded-2xl flex items-center justify-center shadow-md shadow-blue-500/5">
-            <Cpu className="w-7 h-7 text-blue-600" />
+          <div className="h-20 w-20 flex items-center justify-center overflow-hidden rounded-2xl">
+            <img src={logo1} alt="Logo" className="h-full w-full object-contain" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 uppercase">INDUS-SHIELD</h1>
-            <span className="text-xs text-slate-400 font-semibold tracking-widest uppercase">Safety Live Analytics</span>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900 uppercase">Industrial Safety Core</h1>
+            <span className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">Safety Live Analytics</span>
           </div>
         </div>
-
-        <h2 className="text-lg font-bold text-slate-700 mb-6 text-center">
-          Sign In to Supervisor Portal
-        </h2>
 
         {/* Success & Error alerts */}
         {error && (
@@ -53,7 +50,7 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
           {/* Email field */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-450 uppercase tracking-wider ml-1" htmlFor="email-input">
@@ -65,7 +62,7 @@ export const Login: React.FC = () => {
                 id="email-input"
                 type="email"
                 required
-                placeholder="supervisor@indus-shield.com"
+                placeholder="supervisor@safety-core.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-300"
@@ -96,7 +93,7 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-4 bg-blue-600 hover:bg-blue-550 active:scale-[0.98] disabled:opacity-50 text-white rounded-2xl text-sm font-bold shadow-md shadow-blue-500/10 cursor-pointer transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full mt-0 py-4 bg-blue-600 hover:bg-blue-550 active:scale-[0.98] disabled:opacity-50 text-white rounded-2xl text-sm font-normal shadow-md shadow-blue-500/10 cursor-pointer transition-all duration-300 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

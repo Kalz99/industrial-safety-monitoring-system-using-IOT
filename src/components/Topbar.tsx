@@ -32,7 +32,7 @@ export const Topbar: React.FC<TopbarProps> = ({ activeTab, theme, setTheme, chil
       case 'alerts':
         return 'System Alert Logs';
       default:
-        return 'Industrial IoT Dashboard';
+        return 'Active Sectors';
     }
   };
 

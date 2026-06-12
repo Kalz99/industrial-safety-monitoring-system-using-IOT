@@ -1,6 +1,49 @@
 # Industrial Safety Monitoring System using IoT
 
-A modern web application built to monitor real-time industrial safety metrics and predictive machine analytics. The system integrates with **Firebase Realtime Database** for live sensor readings and alert dispatch, and **Azure Table Storage** for high-frequency historical analytics logging.
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Microsoft Azure](https://img.shields.io/badge/Microsoft_Azure-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Azure ML](https://img.shields.io/badge/Azure_Machine_Learning-0089D6?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![MQTT](https://img.shields.io/badge/MQTT-3C008F?style=for-the-badge&logo=mqtt&logoColor=white)
+![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
+
+This project presents a Cloud-Based Industrial Predictive Maintenance and Safety Monitoring System for industrial environments. The system monitors machine conditions and environmental safety in real time. Sensor data is sent to the cloud for storage, analysis and display through a web based dashboard. It also uses machine learning to identify possible machine failures and provide early maintenance warnings. This helps improve worker safety, reduce machine downtime and increase operational efficiency.
+
+---
+
+## 🖼️ System Documentation
+
+### End-to-End System Architecture
+![Architecture Diagram](./public/architecture_diagram.jpg)
+
+---
+
+## 🏗️ System Architecture & Data Flow
+
+This project implements a multi-layered IoT architecture for real-time safety monitoring and AI-driven predictive maintenance:
+
+1. **Edge Sensing Layer**:
+   * **Machine Health Node**: Powered by an ESP32 micro-controller reading physical metrics (vibration & motor temperature via MPU6050, amperage draw via ACS712).
+   * **Environmental & Fire Node**: Powered by an ESP32 reading surroundings (ambient temperature & humidity via DHT22, smoke density via MQ2, fire/flame presence via a Flame Sensor).
+   * **Local Communication**: Edge nodes communicate with the local gateway via the lightweight **ESP-NOW** wireless protocol.
+
+2. **Gateway Layer**:
+   * An ESP32 Gateway node coordinates the edge sensors and acts as a bridge. It manages local alerts (buzzers/LEDs) and safely transmits telemetry to the cloud using **WiFi + MQTT over TLS (Port 8883)**.
+
+3. **Cloud Ingress & Storage Layer**:
+   * **Azure IoT Hub**: Authenticates devices securely using SAS tokens, ingests raw MQTT telemetry streams, and routes messages to a built-in Event Hub.
+   * **Azure Functions**: Automatically triggered by new Event Hub entries to parse raw JSON payloads, fetch AI maintenance predictions, and update storage services.
+   * **Azure Machine Learning**: Hosts the classification ML model (trained via Azure AutoML) which evaluates telemetry inputs (vibration, current, temperature) and outputs if a machine is `Healthy (0)` or if `Maintenance is Recommended (1)`.
+   * **Azure Table Storage**: Used as a high-performance, cost-effective historical telemetry log for big data archiving.
+
+4. **Realtime Backend & Application Layer**:
+   * **Firebase RTDB**: Azure Functions pushes parsed live values directly to Firebase, which syncs them instantly to the React frontend dashboard via WebSockets (`WSS`).
+   * **Firebase Authentication**: Handles secure login and access control for supervisor portals.
+   * **Firebase Cloud Messaging (FCM)**: Dispatches instant push notifications to supervisors for critical safety breaches even if the browser dashboard is closed.
+   * **React Web App**: Displays real-time gauges, active sirens, interactive charts loaded from Azure Table Storage, and a chronological log of safety alerts.
 
 ---
 
@@ -19,6 +62,7 @@ A modern web application built to monitor real-time industrial safety metrics an
 *   **Frontend**: React 19 (TypeScript), Vite, Tailwind CSS v4, Lucide Icons
 *   **State Management**: Zustand
 *   **Realtime Backend & Auth**: Firebase Auth, Firebase Cloud Messaging, Firebase Realtime Database
+*   **Telemetry Ingestion & ML**: Azure IoT Hub, Azure Functions, Azure Machine Learning (AutoML)
 *   **Historical Telemetry**: Azure Table Storage (`@azure/data-tables`)
 
 ---
